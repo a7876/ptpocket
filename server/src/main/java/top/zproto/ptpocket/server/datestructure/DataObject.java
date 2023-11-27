@@ -31,6 +31,14 @@ public class DataObject {
         }
     }
 
+    public int getInt() {
+        int res = 0;
+        for (int i = 0; i < 4; i++) {
+            res |= data[i] << i * 8;
+        }
+        return res;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -51,6 +51,14 @@ public class SortedSet {
         return skipList.getReverseRank(key, dataObject);
     }
 
+    public List<DataObject> getRange(int nums) {
+        return skipList.getRange(nums);
+    }
+
+    public List<DataObject> getReverseRange(int nums) {
+        return skipList.getReverseRange(nums);
+    }
+
     public int getSize() {
         return skipList.size;
     }
@@ -91,9 +99,9 @@ public class SortedSet {
             Node node = head;
             for (int i = currentLevel - 1; i >= 0; i--) { // 这里基于一个事实，有i层高的必定又i-1层高
                 Node tmp;
-                while ((tmp = node.forward[i]) != null && (key > tmp.key || key == tmp.key && !tmp.val.equals(dataObject))) // 不断前进
+                while ((tmp = node.forward[i]) != tail && (key > tmp.key || key == tmp.key && !tmp.val.equals(dataObject))) // 不断前进
                     node = tmp;
-                if (tmp != null && key == tmp.key && tmp.val.equals(dataObject))
+                if (tmp != tail && key == tmp.key && tmp.val.equals(dataObject))
                     return tmp;
             }
             return null;
@@ -104,7 +112,7 @@ public class SortedSet {
             Node[] tmpArray = new Node[MAX_LEVEL]; // 缓存插入节点前经过的最近节点信息
             for (int i = currentLevel - 1; i >= 0; i--) {
                 Node tmp;
-                while ((tmp = node.forward[i]) != null && key > tmp.key) // 不断前进
+                while ((tmp = node.forward[i]) != tail && key > tmp.key) // 不断前进
                     node = tmp;
                 tmpArray[i] = node; // 次层的前置节点
             }
@@ -116,11 +124,13 @@ public class SortedSet {
                 currentLevel = tmpLevel;
             }
             node = new Node(key, value, new Node[tmpLevel]);
+            Node next = tmpArray[0].forward[0];
             for (int i = 0; i < tmpLevel; i++) { // 调整指针
                 node.forward[i] = tmpArray[i].forward[i];
                 tmpArray[i].forward[i] = node;
             }
             node.backward = tmpArray[0]; // 记录前驱节点
+            next.backward = node;
             size++;
         }
 
@@ -129,7 +139,7 @@ public class SortedSet {
             Node[] tmpArray = new Node[currentLevel];
             for (int i = currentLevel - 1; i >= 0; i--) {
                 Node tmp;
-                while ((tmp = node.forward[i]) != null && (key > tmp.key || key == tmp.key && !tmp.val.equals(dataObject))) // 不断前进
+                while ((tmp = node.forward[i]) != tail && (key > tmp.key || key == tmp.key && !tmp.val.equals(dataObject))) // 不断前进
                     node = tmp;
                 tmpArray[i] = node; // 次层的前置节点
             }
@@ -142,10 +152,8 @@ public class SortedSet {
                     tmpArray[i].forward[i] = node.forward[i];
                 }
                 Node next = node.forward[0];
-                if (next != null) {
-                    next.backward = tmpArray[0];
-                }
-                while (currentLevel > 0 && head.forward[currentLevel - 1] == null) currentLevel--; // 缩减高度
+                next.backward = tmpArray[0];
+                while (currentLevel > 0 && head.forward[currentLevel - 1] == tail) currentLevel--; // 缩减高度
                 size--;
                 return oldKey;
             }
@@ -171,7 +179,7 @@ public class SortedSet {
                 return null;
             int count = 0;
             Node next;
-            while ((next = node.forward[0]) != null) {
+            while ((next = node.forward[0]) != tail) {
                 count++;
                 node = next;
             }
@@ -181,7 +189,7 @@ public class SortedSet {
         List<DataObject> getRangeByScore(double start, double end) {
             Node node = head, tmp = null;
             for (int i = currentLevel - 1; i >= 0; i--) { // 这里基于一个事实，有i层高的必定又i-1层高
-                while ((tmp = node.forward[i]) != null && (start > tmp.key)) // 不断前进
+                while ((tmp = node.forward[i]) != tail && (start > tmp.key)) // 不断前进
                     node = tmp;
             }
             if (tmp == null)
@@ -190,6 +198,30 @@ public class SortedSet {
             while (tmp != null && tmp.key <= end) {
                 res.add(tmp.val);
                 tmp = tmp.forward[0];
+            }
+            return res;
+        }
+
+        List<DataObject> getRange(int nums) {
+            ArrayList<DataObject> res = new ArrayList<>();
+            Node node = head.forward[0];
+            int count = 0;
+            while (node != tail && count < nums) {
+                res.add(node.val);
+                node = node.forward[0];
+                count++;
+            }
+            return res;
+        }
+
+        List<DataObject> getReverseRange(int nums) {
+            ArrayList<DataObject> res = new ArrayList<>();
+            Node node = tail.backward;
+            int count = 0;
+            while (node != head && count < nums) {
+                res.add(node.val);
+                node = node.backward;
+                count++;
             }
             return res;
         }
