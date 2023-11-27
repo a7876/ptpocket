@@ -1,19 +1,30 @@
 package top.zproto.ptpocket.server.entity;
 
-public class ResponsePool implements ObjectPool<ResponsePool>{
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+public class ResponsePool implements ObjectPool<Response, ResponsePool> {
     // 对象池，获取响应对象
+    public static final ResponsePool instance = new ResponsePool();
+    private final ConcurrentLinkedQueue<Response> pool = new ConcurrentLinkedQueue<>();
+    private static final int MAX_SIZE = 50;
+
     @Override
-    public ResponsePool getObject() {
-        return null;
+    public Response getObject() {
+        Response r = pool.poll();
+        if (r != null)
+            return r;
+        return new Response();
     }
 
     @Override
-    public void returnObject() {
-
+    public void returnObject(Response response) {
+        if (pool.size() < MAX_SIZE)
+            pool.add(response);
     }
 
     @Override
     public void tryShrink() {
-
+        while (pool.size() > MAX_SIZE)
+            pool.poll();
     }
 }

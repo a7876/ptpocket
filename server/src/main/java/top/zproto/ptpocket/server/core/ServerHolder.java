@@ -1,9 +1,5 @@
 package top.zproto.ptpocket.server.core;
 
-import top.zproto.ptpocket.server.entity.Client;
-import top.zproto.ptpocket.server.entity.Database;
-
-import java.util.LinkedList;
 import java.util.Set;
 
 public class ServerHolder {

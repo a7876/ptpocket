@@ -1,9 +1,9 @@
 package top.zproto.ptpocket.server.entity;
 
-public interface ObjectPool<T extends ObjectPool<T>> {
-    T getObject();
+public interface ObjectPool<E, T extends ObjectPool<E, T>> {
+    E getObject();
 
-    void returnObject();
+    void returnObject(E item);
 
     void tryShrink();
 }

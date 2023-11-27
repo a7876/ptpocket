@@ -1,4 +1,258 @@
 package top.zproto.ptpocket.server.datestructure;
 
-public class Hash implements DataStructure{
+public class Hash implements DataStructure {
+    // 主库和副库，副库再rehash时和主库一起使用
+    private HashImpl main, sub;
+    // rehash进度
+    private int currentBucket = -1; // 初始化为-1
+
+    public Hash(boolean bigInit) { // 键空间使用大表初始化
+        if (bigInit) {
+            main = HashImpl.getBigInit();
+        } else {
+            main = HashImpl.getInstance();
+        }
+    }
+
+    /**
+     * 代理获取方法
+     */
+    public Object get(DataObject key) {
+        Object value = main.get(key);
+        if (value != null)
+            return value;
+        if (currentBucket != -1 && (value = sub.get(key)) != null)
+            return value;
+        return null;
+    }
+
+    /**
+     * 代理删除方法
+     */
+    public Object remove(DataObject key) {
+        Object removed = main.remove(key);
+        if (removed != null)
+            return removed;
+        if (currentBucket != -1 && (removed = sub.remove(key)) != null)
+            return removed;
+        checkShrink();
+        return null;
+    }
+
+    /**
+     * 代理插入
+     */
+    public Object insert(DataObject key, Object value) {
+        Object old;
+        if (currentBucket == -1) { // 没有在rehash插入main
+            old = main.insert(key, value);
+        } else {
+            old = sub.insert(key, value);
+        }
+        checkExpand();
+        return old;
+    }
+
+    /**
+     * rehash阈值
+     */
+    static final float LOAD_FACTOR = 0.9f;
+
+    /**
+     * 检查rehash增大
+     */
+    private void checkExpand() {
+        if (currentBucket != -1) { // 正在rehash
+            advanceRehash();
+            return;
+        }
+        final int size = main.size;
+        final int capacity = main.table.length;
+        if (size >= capacity * LOAD_FACTOR) { // 判断是否需要增大
+            int newSize = main.getNextAvailableHashExpandSize();
+            if (newSize == 0) // 不能再rehash
+                return;
+            rehashStart(newSize);
+            advanceRehash();
+        }
+    }
+
+    /**
+     * 检查rehash缩小
+     */
+    private void checkShrink() {
+        if (currentBucket != -1) {
+            advanceRehash();
+            return;
+        }
+        final int size = main.size;
+        final int capacity = main.table.length;
+        if (size < capacity * LOAD_FACTOR / 4) { // 判断是否需要减小
+            int newSize = main.getNextAvailableHashShrinkSize();
+            if (newSize == 0) // 不能再rehash
+                return;
+            rehashStart(newSize);
+            advanceRehash();
+        }
+    }
+
+    // rehash一次推进元素量
+    private static final int REHASH_BATCH = 100;
+
+    /**
+     * 推进rehash
+     */
+    private void advanceRehash() {
+        int index = currentBucket;
+        int count = 0;
+        HashImpl.HashNode[] table = main.table;
+        final int size = table.length;
+        while (count < REHASH_BATCH) {
+            HashImpl.HashNode node = table[index];
+            while (node != null) {
+                sub.insert(node.key, node.value);
+                node = node.next;
+                count++;
+            }
+            index++;
+            if (index == size) { // rehash完毕
+                rehashFinish();
+                break;
+            }
+        }
+        if (currentBucket != -1) // 没有rehash完毕
+            currentBucket = index; // 更新即将rehash到的桶
+    }
+
+    private void rehashFinish() {
+        main = sub;
+        sub = null;
+        currentBucket = -1;
+    }
+
+    private void rehashStart(int newSize) {
+        sub = new HashImpl(newSize);
+        currentBucket = 0;
+    }
+
+    private static class HashImpl {
+        static final int MAX_SIZE = 1 << 30;
+        static final int INIT = 1 << 4; // default 16
+        static final int BIG_INIT = 1 << 6;
+        HashNode[] table;
+        int size = 0;
+
+        private int hash(DataObject dataObject) {
+            return table.length - 1 & dataObject.hashCode();
+        }
+
+        /**
+         * 获取元素
+         */
+        Object get(DataObject key) {
+            HashNode node = table[hash(key)];
+            while (node != null) {
+                if (node.key.equals(key))
+                    return node.value;
+                node = node.next;
+            }
+            return null;
+        }
+
+        /**
+         * 插入元素
+         */
+        Object insert(DataObject key, Object value) {
+            HashNode newNode = new HashNode(key, value);
+            HashNode node = table[hash(key)];
+            while (node != null) {
+                if (node.key.equals(key)) {
+                    Object old = node.value;
+                    node.value = value;
+                    return old;
+                }
+                node = node.next;
+            }
+            table[hash(key)] = newNode.setNext(table[hash(key)]); // 总是头插入
+            size++;
+            return null;
+        }
+
+        /**
+         * 删除元素
+         */
+        Object remove(DataObject key) {
+            HashNode node = table[hash(key)];
+            if (node == null)
+                return null;
+            if (node.key.equals(key)) {
+                Object old = node.value;
+                table[hash(key)] = node.next;
+                size--;
+                return old;
+            }
+            while (node.next != null) {
+                if (node.next.key.equals(key)) {
+                    Object old = node.next.value;
+                    node.next = node.next.next;
+                    size--;
+                    return old;
+                }
+                node = node.next;
+            }
+            return null;
+        }
+
+        /**
+         * 获取下次的增长大小
+         */
+        int getNextAvailableHashExpandSize() {
+            int current = this.table.length;
+            if (current == MAX_SIZE)
+                return 0; // 不能再扩容
+            return current << 1;
+        }
+
+        /**
+         * 获取缩容大小
+         */
+        int getNextAvailableHashShrinkSize() {
+            int current = this.table.length;
+            if (current <= BIG_INIT)
+                return 0; // 不能缩容
+            return current >>> 1;
+        }
+
+
+        static class HashNode {
+            DataObject key;
+            Object value;
+            HashNode next;
+
+            public HashNode(DataObject key, Object value) {
+                this.key = key;
+                this.value = value;
+            }
+
+            HashNode setNext(HashNode next) {
+                this.next = next;
+                return this;
+            }
+        }
+
+        //
+        //  获取对象
+        //
+        public static HashImpl getBigInit() { // 大初始值的Hash表
+            return new HashImpl(BIG_INIT);
+        }
+
+        public static HashImpl getInstance() { // 默认始值的Hash表
+            return new HashImpl(INIT);
+        }
+
+        private HashImpl(int capacity) {
+            table = new HashNode[capacity];
+        }
+    }
 }
