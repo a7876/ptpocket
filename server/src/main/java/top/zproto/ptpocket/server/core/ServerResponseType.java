@@ -123,7 +123,7 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
 
     protected void commonPart(ByteBuf buf) { // 装配相同部分
         buf.writeInt(Protocol.MAGIC_NUM);
-        buf.writeByte(Protocol.VERSION_LENGTH);
+        buf.writeByte(Protocol.VERSION);
     }
 
     protected void noBody(ByteBuf buf) {

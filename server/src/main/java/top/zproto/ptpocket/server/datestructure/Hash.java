@@ -1,5 +1,8 @@
 package top.zproto.ptpocket.server.datestructure;
 
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 public class Hash implements DataStructure {
     // 主库和副库，副库再rehash时和主库一起使用
     private HashImpl main, sub;
@@ -133,6 +136,40 @@ public class Hash implements DataStructure {
     private void rehashStart(int newSize) {
         sub = new HashImpl(newSize);
         currentBucket = 0;
+    }
+
+    public void cronCheckRehash() {
+        if (currentBucket != -1)
+            advanceRehash();
+    }
+
+    public int checkExpire(int limit) {
+        if (currentBucket != -1) // rehash中不执行过期检查
+            return 0;
+        int count = 0;
+        long current = System.currentTimeMillis();
+        HashImpl.HashNode[] table = main.table;
+        for (int i = 0; i < table.length && count < limit; i++) { // 一个个桶检查
+            HashImpl.HashNode node = table[i];
+            if (node == null)
+                continue;
+            while (node != null && ((Long) node.value) <= current) { // 处理队头
+                table[i] = node.next;
+                node = node.next;
+                count++;
+            }
+            if (node == null)
+                continue;
+            while (node.next != null) {
+                if (((Long) node.next.value) <= current) {
+                    node.next = node.next.next; // 删除节点
+                    count++;
+                } else {
+                    node = node.next; // 推进一次
+                }
+            }
+        }
+        return count;
     }
 
     private static class HashImpl {

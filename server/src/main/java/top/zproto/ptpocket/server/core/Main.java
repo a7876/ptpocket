@@ -97,7 +97,8 @@ public class Main {
      * 计算可以阻塞的时间
      */
     private long timeCanWait() {
-        return 5000;
+        long canWait = server.getTriggerTimeOfClosestTimeEvent() - System.currentTimeMillis();
+        return canWait > 0 ? canWait : 0;
     }
 
     /**
@@ -108,6 +109,7 @@ public class Main {
             Command command = commands[i];
             command.process();
             command.returnObject();
+            server.totalCommandCount++;
         }
     }
 
@@ -115,8 +117,7 @@ public class Main {
      * 处理时间事件
      */
     private void processTimeEvent() {
-        logger.info("server has running " + (System.currentTimeMillis() - server.startTime) + " ms");
-        server.shutdown = true;
+        server.processTimeEvent();
     }
 
     private void initDb(ServerConfiguration config) { // 初始化db

@@ -17,7 +17,7 @@ public class CommandPool implements ObjectPool<Command, CommandPool> {
     }
 
     @Override
-    public void returnObject(Command command) {
+    public void returnObject(Command command) { // 这个方法一定要注意不能对一个对象调用多次
         if (pool.size() < MAX_SIZE) {
             command.clear();
             pool.add(command);

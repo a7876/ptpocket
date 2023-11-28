@@ -6,10 +6,9 @@ public class ServerConfiguration {
     int port = 7878;
     int IOThreads = 2;
     int timeOutLimit = 5; // 单位是分钟
-
     int bossGroupThread = 1; // 主reactor线程数，固定是1
-
     int dbNums = 8; // 数据库数量
+    int frequencyOfServerCron = 10; // 数据库定时任务频率，默认10hz
 
     private static volatile ServerConfiguration instance = null;
 

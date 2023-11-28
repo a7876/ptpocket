@@ -3,13 +3,14 @@ package top.zproto.ptpocket.common;
 public interface Protocol {
     /**
      * 定义协议的组成
-     *
+     * <p>
      * ----------------------------------------------------------
      * | magic number | version | command | body length | body |
      * ----------------------------------------------------------
      */
     int MAGIC_NUM = 0xff7878ff; // 固定魔数
     byte MAGIC_NUM_LENGTH = 4; // 魔法数长度
+    byte VERSION = 1;
     byte VERSION_LENGTH = 1; // 版本字段的字节数
     byte COMMAND_LENGTH = 1; // 命令字段的字节数，请求阶段协议使用
     byte RESPONSE_LENGTH = 1; // 回复字段的字节数，响应阶段协议使用

@@ -330,6 +330,9 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
         return Response.getObject();
     }
 
+    /**
+     * 检查用户是否选择了数据库
+     */
     protected Database checkDB(Client client) {
         int usedDb = client.usedDb;
         if (usedDb == -1) {
@@ -360,6 +363,9 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
         response().setClient(client).setResponseType(ServerResponseType.DATA).setDataObjects(dataObject);
     }
 
+    /**
+     * 获取键空间的value，执行惰性删除
+     */
     protected Object getValue(Database database, DataObject dataObject) {
         Long l = (Long) database.expire.get(dataObject);
         if (l != null && System.currentTimeMillis() - l >= 0) { // 已经过期
@@ -383,7 +389,11 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
         response().setClient(client).setResponseType(ServerResponseType.DOUBLE).setdNum(d);
     }
 
-    protected SortedSet getSortedSet(Client client, Command command) { // commonPart for sortedSet
+    /**
+     * common part for sortedSet
+     * 公共部分
+     */
+    protected SortedSet getSortedSet(Client client, Command command) {
         Database database = checkDB(client);
         if (database == null)
             return null;
@@ -401,7 +411,11 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
         return (SortedSet) value;
     }
 
-    protected Hash getHash(Client client, Command command) { // commonPart for Hash
+    /**
+     * common part for hash
+     * 公共部分
+     */
+    protected Hash getHash(Client client, Command command) {
         Database database = checkDB(client);
         if (database == null)
             return null;
@@ -419,5 +433,8 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
         return (Hash) value;
     }
 
+    /**
+     * 全局serverHolder对象
+     */
     protected ServerHolder server = ServerHolder.INSTANCE;
 }

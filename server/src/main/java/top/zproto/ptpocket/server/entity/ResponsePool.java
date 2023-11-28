@@ -17,7 +17,7 @@ public class ResponsePool implements ObjectPool<Response, ResponsePool> {
     }
 
     @Override
-    public void returnObject(Response response) {
+    public void returnObject(Response response) { // 这个方法一定要注意不能对一个对象调用多次
         if (pool.size() < MAX_SIZE) {
             response.clear();
             pool.add(response);
