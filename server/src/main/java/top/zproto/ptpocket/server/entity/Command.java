@@ -4,6 +4,9 @@ import top.zproto.ptpocket.server.core.Client;
 import top.zproto.ptpocket.server.core.ServerCommandType;
 import top.zproto.ptpocket.server.datestructure.DataObject;
 
+/**
+ * 请求命令类
+ */
 public class Command {
     Client client;
     ServerCommandType commandType;
@@ -27,6 +30,18 @@ public class Command {
         client = null;
         commandType = null;
         dataObjects = null;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public ServerCommandType getCommandType() {
+        return commandType;
+    }
+
+    public DataObject[] getDataObjects() {
+        return dataObjects;
     }
 
     public void process() {

@@ -52,6 +52,14 @@ public class DataObject {
         return res;
     }
 
+    public double getDouble(){
+        throw new UnsupportedOperationException();
+    }
+
+    public void populate(ByteBuf buf) {
+        buf.writeBytes(data);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

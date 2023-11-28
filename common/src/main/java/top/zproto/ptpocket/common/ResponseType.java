@@ -1,11 +1,16 @@
 package top.zproto.ptpocket.common;
 
 public interface ResponseType {
-    byte STRING = 1; // 数据库回复的是一段字符串
-    byte DATA = 2; // 响应的是一段用户传来的数据
-    byte NULL = 3; // 数据库响应NULL
-    byte OK = 4; // 响应操作成功
-    byte TRUE = 5; // 响应true
-    byte FALSE = 6; // 响应false
-    byte CONNECT_RESET = 7; // 服务端断开连接
+    byte DATA = 1; // 响应的是一段用户传来的数据
+    byte NULL = 2; // 数据库响应NULL
+    byte OK = 3; // 响应操作成功
+    byte TRUE = 4; // 响应true
+    byte FALSE = 5; // 响应false
+    byte INT = 6; // 响应一个int
+    byte DOUBLE = 7; // 响应一个double
+    byte LIST = 8; // 响应一个列表
+    byte UNKNOWN_COMMAND = 100; // 未知指令
+    byte ILLEGAL_COMMAND = 101; // 不合法的指令
+    byte DB_UNSELECTED = 102;
+    byte CONNECT_RESET = (byte) 255; // 服务端断开连接
 }

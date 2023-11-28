@@ -90,13 +90,16 @@ public class SkipListTest {
             list.sort(Comparator.comparingInt(i -> i));
             int size = Math.min(15, set.size());
             List<Integer> range = list.stream().limit(size).collect(Collectors.toList());
-            List<DataObject> srange = sortedSet.getRange(size);
+
+            int offset = random.nextInt(15);
+
+            List<DataObject> srange = sortedSet.getRange(offset, size);
             if (range.size() != srange.size())
                 throw new IllegalStateException();
-            for (int i = 0; i < size; i++) {
+            for (int i = offset; i < size; i++) {
                 DataObject dataObject = new DataObject(4);
                 dataObject.writeInt(range.get(i));
-                if (!dataObject.equals(srange.get(i)))
+                if (!dataObject.equals(srange.get(i - offset)))
                     throw new IllegalStateException();
             }
             range.clear();
@@ -105,13 +108,13 @@ public class SkipListTest {
                 range.add(list.get(list.size() - count - 1));
                 count++;
             }
-            srange = sortedSet.getReverseRange(size);
+            srange = sortedSet.getReverseRange(offset, size);
             if (range.size() != srange.size())
                 throw new IllegalStateException();
-            for (int i = 0; i < size; i++) {
+            for (int i = offset; i < size; i++) {
                 DataObject dataObject = new DataObject(4);
                 dataObject.writeInt(range.get(i));
-                if (!dataObject.equals(srange.get(i)))
+                if (!dataObject.equals(srange.get(i - offset)))
                     throw new IllegalStateException();
             }
         }

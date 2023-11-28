@@ -20,9 +20,9 @@ public class CommandParser implements Protocol {
 
     public Command parse(Client client, ByteBuf buf) {
         skipMagicNumber(buf);
-        if (getVersion(buf) != SUPPORTED_VERSION)
-            return simpleCommand(client, VERSION_UNSUPPORTED);
+        skipVersion(buf);
         byte command = getCommand(buf);
+        skipBodyLength(buf); // 跳过body长度进入body
         switch (command) {
             case CommandType.SET:
                 return set(client, buf);
@@ -40,6 +40,8 @@ public class CommandParser implements Protocol {
                 return zDel(client, buf);
             case CommandType.Z_RANGE:
                 return zRange(client, buf);
+            case CommandType.Z_REVERSE_RANGE:
+                return zReverseRange(client, buf);
             case CommandType.Z_RANK:
                 return zRank(client, buf);
             case CommandType.Z_SCORE:
@@ -48,6 +50,18 @@ public class CommandParser implements Protocol {
                 return zRangeScore(client, buf);
             case CommandType.Z_REVERSE_RANK:
                 return zReverseRank(client, buf);
+            case CommandType.DEL:
+                return del(client, buf);
+            case CommandType.EXPIRE:
+                return expire(client, buf);
+            case CommandType.EXPIRE_MILL:
+                return expireMill(client, buf);
+            case CommandType.SELECT:
+                return select(client, buf);
+            case CommandType.PERSIST:
+                return persist(client, buf);
+            case CommandType.STOP:
+                return stop(client, buf);
             default:
                 return unkonwnCommand(client);
         }
@@ -57,8 +71,12 @@ public class CommandParser implements Protocol {
         buf.readInt();
     }
 
-    private byte getVersion(ByteBuf buf) {
-        return buf.readByte();
+    private void skipVersion(ByteBuf buf) {
+        buf.readByte();
+    }
+
+    private void skipBodyLength(ByteBuf buf) {
+        buf.readInt();
     }
 
     private byte getCommand(ByteBuf buf) {
@@ -131,15 +149,12 @@ public class CommandParser implements Protocol {
 
     private Command zRange(Client client, ByteBuf buf) {
         // keyLength + key + int + int
-        if (buf.readableBytes() < 4)
-            return unkonwnCommand(client);
-        int keyLength = buf.readInt();
-        if (keyLength <= 0 || buf.readableBytes() != keyLength + 8)
-            return unkonwnCommand(client);
-        DataObject key = new DataObject(buf, keyLength);
-        IntDataObject i0 = new IntDataObject(buf.readInt());
-        IntDataObject i1 = new IntDataObject(buf.readInt());
-        return setDataObject(getCommand(client), key, i0, i1).setCommandType(Z_RANGE);
+        return threePartWithLastTwoInt(client, buf, Z_RANGE);
+    }
+
+    private Command zReverseRange(Client client, ByteBuf buf) {
+        // keyLength + key + int + int
+        return threePartWithLastTwoInt(client, buf, Z_REVERSE_RANGE);
     }
 
     private Command zRank(Client client, ByteBuf buf) {
@@ -170,6 +185,41 @@ public class CommandParser implements Protocol {
         return threePartParse(client, buf, Z_SCORE);
     }
 
+    private Command del(Client client, ByteBuf buf) {
+        // body 只有一个key
+        return onlyKey(client, buf, DEL);
+    }
+
+    private Command expire(Client client, ByteBuf buf) {
+        // keyLength + key + int
+        return threePartParseLastInt(client, buf, EXPIRE);
+    }
+
+    private Command select(Client client, ByteBuf buf) {
+        // body 只有一个byte，是数据库编号
+        if (buf.readableBytes() != 1)
+            return unkonwnCommand(client);
+        IntDataObject i0 = new IntDataObject(buf.readByte());
+        return setDataObject(getCommand(client), i0).setCommandType(SELECT);
+    }
+
+    private Command expireMill(Client client, ByteBuf buf) {
+        // keyLength + key + int
+        return threePartParseLastInt(client, buf, EXPIRE_MILL);
+    }
+
+    private Command persist(Client client, ByteBuf buf) {
+        // body 只有一个key
+        return onlyKey(client, buf, PERSIST);
+    }
+
+    private Command stop(Client client, ByteBuf buf) {
+        // 没有body
+        if (buf.readableBytes() != 0)
+            return unkonwnCommand(client);
+        return simpleCommand(client, STOP);
+    }
+
     /**
      * 从池中获取Command
      */
@@ -193,5 +243,37 @@ public class CommandParser implements Protocol {
         DataObject key = new DataObject(buf, keyLength);
         DataObject innerKeyOrValue = new DataObject(buf);
         return setDataObject(getCommand(client), key, innerKeyOrValue).setCommandType(serverCommandType);
+    }
+
+    private Command threePartParseLastInt(Client client, ByteBuf buf, ServerCommandType serverCommandType) {
+        // 专门针对 keyLength + key + innerKey/value 结构
+        if (buf.readableBytes() < 4)
+            return unkonwnCommand(client);
+        int keyLength = buf.readInt();
+        if (keyLength <= 0 || buf.readableBytes() < keyLength + 4)
+            return unkonwnCommand(client);
+        DataObject key = new DataObject(buf, keyLength);
+        IntDataObject i0 = new IntDataObject(buf.readInt());
+        return setDataObject(getCommand(client), key, i0).setCommandType(serverCommandType);
+    }
+
+    private Command onlyKey(Client client, ByteBuf buf, ServerCommandType serverCommandType) {
+        // 专门针对 只有key 结构
+        if (buf.readableBytes() == 0)
+            return unkonwnCommand(client);
+        DataObject key = new DataObject(buf);
+        return setDataObject(getCommand(client), key).setCommandType(serverCommandType);
+    }
+
+    private Command threePartWithLastTwoInt(Client client, ByteBuf buf, ServerCommandType serverCommandType) {
+        if (buf.readableBytes() < 4)
+            return unkonwnCommand(client);
+        int keyLength = buf.readInt();
+        if (keyLength <= 0 || buf.readableBytes() != keyLength + 8)
+            return unkonwnCommand(client);
+        DataObject key = new DataObject(buf, keyLength);
+        IntDataObject i0 = new IntDataObject(buf.readInt());
+        IntDataObject i1 = new IntDataObject(buf.readInt());
+        return setDataObject(getCommand(client), key, i0, i1).setCommandType(serverCommandType);
     }
 }

@@ -12,13 +12,13 @@ public class SortedSet {
     private final Hash hash = new Hash(false);
     private final SkipList skipList = new SkipList();
 
-    public DataObject insert(double num, DataObject dataObject) {
+    public DataObject insert(double score, DataObject dataObject) {
         Double old = (Double) hash.get(dataObject);
         if (old != null) { // 已经存在
             skipList.remove(old, dataObject); // 先删除
         }
-        skipList.insert(num, dataObject); // 插入
-        hash.insert(dataObject, num); // 插入或修改
+        skipList.insert(score, dataObject); // 插入
+        hash.insert(dataObject, score); // 插入或修改
         return null;
     }
 
@@ -52,12 +52,12 @@ public class SortedSet {
         return skipList.getReverseRank(key, dataObject);
     }
 
-    public List<DataObject> getRange(int nums) {
-        return skipList.getRange(nums);
+    public List<DataObject> getRange(int offset, int nums) {
+        return skipList.getRange(offset, nums);
     }
 
-    public List<DataObject> getReverseRange(int nums) {
-        return skipList.getReverseRange(nums);
+    public List<DataObject> getReverseRange(int offset, int nums) {
+        return skipList.getReverseRange(offset, nums);
     }
 
     public int getSize() {
@@ -204,7 +204,7 @@ public class SortedSet {
 
         List<DataObject> getRangeByScore(double start, double end) {
             Node node = head, tmp = null;
-            for (int i = currentLevel - 1; i >= 0; i--) { // 这里基于一个事实，有i层高的必定又i-1层高
+            for (int i = currentLevel - 1; i >= 0; i--) {
                 while ((tmp = node.level[i].forward) != tail && (start > tmp.key)) // 不断前进
                     node = tmp;
             }
@@ -218,26 +218,63 @@ public class SortedSet {
             return res;
         }
 
-        List<DataObject> getRange(int nums) {
+        List<DataObject> getRange(int offset, int nums) {
             ArrayList<DataObject> res = new ArrayList<>();
-            Node node = head.level[0].forward;
-            int count = 0;
-            while (node != tail && count < nums) {
-                res.add(node.val);
+            if (offset >= size)
+                return res;
+            Node node = head;
+            int rank = 0;
+            for (int i = currentLevel - 1; i >= 0; i--) {
+                Node tmp;
+                while ((tmp = node.level[i].forward) != tail) { // 不断前进
+                    if (rank + node.level[i].span > offset) {
+                        break;
+                    }
+                    rank += node.level[i].span;
+                    node = tmp;
+                }
+            }
+            offset -= rank;
+            for (int i = 0; i < offset; i++) {
                 node = node.level[0].forward;
-                count++;
+            }
+            for (int i = 0; i < nums; i++) {
+                node = node.level[0].forward;
+                if (node == tail) {
+                    break;
+                }
+                res.add(node.val);
             }
             return res;
         }
 
-        List<DataObject> getReverseRange(int nums) {
+        List<DataObject> getReverseRange(int offset, int nums) {
             ArrayList<DataObject> res = new ArrayList<>();
-            Node node = tail.backward;
-            int count = 0;
-            while (node != head && count < nums) {
+            if (offset >= size)
+                return res;
+            Node node = head;
+            offset = size - offset;
+            int rank = 0;
+            for (int i = currentLevel - 1; i >= 0; i--) {
+                Node tmp;
+                while ((tmp = node.level[i].forward) != tail) { // 不断前进
+                    if (rank + node.level[i].span > offset) {
+                        break;
+                    }
+                    rank += node.level[i].span;
+                    node = tmp;
+                }
+            }
+            offset -= rank;
+            for (int i = 0; i < offset; i++) {
+                node = node.level[0].forward;
+            }
+            for (int i = 0; i < nums; i++) {
+                if (node == head) {
+                    break;
+                }
                 res.add(node.val);
                 node = node.backward;
-                count++;
             }
             return res;
         }

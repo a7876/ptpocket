@@ -42,35 +42,60 @@ public interface CommandType {
      */
     byte Z_RANGE = 22;
     /**
+     * body中前四位标记key的长度，接着是key，然后是两个四位int
+     * keyLength + key + int + int
+     */
+    byte Z_REVERSE_RANGE = 23;
+    /**
      * body中前四位标记key的长度，接着是key，然后是两个八位double
      * keyLength + key + double + double
      */
-    byte Z_RANGE_SCORE = 23;
+    byte Z_RANGE_SCORE = 24;
     /**
      * body中前四位标记key的长度，接着是key，然后是value
      * keyLength + key + value
      */
-    byte Z_RANK = 24;
+    byte Z_RANK = 25;
     /**
      * body中前四位标记key的长度，接着是key，然后是value
      * keyLength + key + value
      */
-    byte Z_REVERSE_RANK = 25;
+    byte Z_REVERSE_RANK = 26;
     /**
      * body中前四位标记key的长度，接着是key，然后是value
      * keyLength + key + value
      */
-    byte Z_SCORE = 26;
+    byte Z_SCORE = 27;
 
     // 通用指令
+    /**
+     * body 只有一个key
+     */
     byte DEL = (byte) 200; // 删除某个键
+    /**
+     * body 前四位标记key长度，接着是key，然后是四位int
+     * keyLength + key + int
+     */
     byte EXPIRE = (byte) 199; // 设置过期，单位秒
+    /**
+     * body 只有一个byte，是数据库编号
+     */
     byte SELECT = (byte) 198; // 选择数据库
+    /**
+     * body 前四位标记key长度，接着是key，然后是四位int
+     * keyLength + key + int
+     */
     byte EXPIRE_MILL = (byte) 197; // 设置过期，单位毫秒
+    /**
+     * body 只有一个key
+     */
     byte PERSIST = (byte) 196; // 取消过期
 
     // 特殊指令
 
+    /**
+     * 没有body
+     */
     byte STOP = (byte) 255; // 停止redis
 
     // 保留指令

@@ -1,108 +1,323 @@
 package top.zproto.ptpocket.server.core;
 
 import top.zproto.ptpocket.common.CommandType;
+import top.zproto.ptpocket.server.datestructure.DataObject;
+import top.zproto.ptpocket.server.datestructure.Hash;
+import top.zproto.ptpocket.server.datestructure.SortedSet;
 import top.zproto.ptpocket.server.entity.Command;
+import top.zproto.ptpocket.server.entity.Response;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 
 public enum ServerCommandType implements CommandType, CommandProcessor {
-    VERSION_UNSUPPORTED(RESERVED_0) {
+    UNKNOWN_COMMAND(RESERVED_0) {
         @Override
         public void processCommand(Command command) {
-
-        }
-    }, UNKNOWN_COMMAND(RESERVED_1) {
-        @Override
-        public void processCommand(Command command) {
-
+            Response response = response().setResponseType(ServerResponseType.UNKNOWN_COMMAND);
+            command.getClient().channel.writeAndFlush(response);
         }
     }, DEL(CommandType.DEL) {
         @Override
-        public void processCommand(Command command) {
-
+        public void processCommand(Command command) { // 删除键
+            Client client = command.getClient();
+            Database db = checkDB(client);
+            if (db == null)
+                return;
+            DataObject key = command.getDataObjects()[0];
+            Object removed = db.keyspace.remove(key);
+            if (removed != null)
+                db.expire.remove(key);
+            responseOK(client);
         }
     }, EXPIRE(CommandType.EXPIRE) {
         @Override
-        public void processCommand(Command command) {
-
+        public void processCommand(Command command) { // 设置过期，单位是秒
+            Client client = command.getClient();
+            Database database = checkDB(client);
+            if (database == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject key = dataObjects[0];
+            Object value = getValue(database, key);
+            if (value == null) {
+                responseNull(client);
+                return;
+            }
+            int time = dataObjects[1].getInt();
+            if (time < 0) {
+                responseOK(client);
+                return;
+            }
+            long timeOut = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(time);
+            database.expire.insert(key, timeOut);
+            responseOK(client);
         }
-    }, EXPIRE_MILL(CommandType.EXPIRE_MILL) {
+    }, EXPIRE_MILL(CommandType.EXPIRE_MILL) { // 设置过期，单位是毫秒
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            Database database = checkDB(client);
+            if (database == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject key = dataObjects[0];
+            Object value = getValue(database, key);
+            if (value == null) {
+                responseNull(client);
+                return;
+            }
+            int time = dataObjects[1].getInt();
+            if (time < 0) {
+                responseOK(client);
+                return;
+            }
+            database.expire.insert(key, System.currentTimeMillis() + time);
+            responseOK(client);
         }
-    }, SELECT(CommandType.SELECT) {
+    }, SELECT(CommandType.SELECT) { // 选择数据库
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            int dbNum = command.getDataObjects()[0].getInt();
+            if (dbNum < 0 || dbNum > server.dbs.length) {
+                responseIllegal(client);
+                return;
+            }
+            client.usedDb = dbNum;
+            responseOK(client);
         }
-    }, PERSIST(CommandType.PERSIST) {
+    }, PERSIST(CommandType.PERSIST) { // 取消过期键
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            Database database = checkDB(client);
+            if (database == null)
+                return;
+            DataObject key = command.getDataObjects()[0];
+            getValue(database, key); // 先检查一下是否过期了
+            Object removed = database.expire.remove(key);
+            if (removed == null)
+                responseNull(client);
+            else
+                responseOK(client);
         }
     }, STOP(CommandType.STOP) {
         @Override
-        public void processCommand(Command command) {
-
+        public void processCommand(Command command) { // 停止服务器
+            responseConnectReset(command.getClient());
+            server.shutdown = true;
         }
-    }, GET(CommandType.GET) {
+    }, GET(CommandType.GET) { // 获取值
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            Database database = checkDB(client);
+            if (database == null)
+                return;
+            DataObject key = command.getDataObjects()[0];
+            Object value = getValue(database, key);
+            if (value instanceof DataObject) { // 检查是否是真确的类型
+                responseData(client, (DataObject) value);
+            } else {
+                responseIllegal(client);
+            }
         }
-    }, SET(CommandType.SET) {
+    }, SET(CommandType.SET) { // 设置值
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            Database database = checkDB(client);
+            if (database == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject key = dataObjects[0];
+            DataObject value = dataObjects[1];
+            database.keyspace.insert(key, value);
+            database.expire.remove(key); // 防止原来的键设置了过期
+            responseOK(client);
         }
-    }, H_SET(CommandType.H_SET) {
+    }, H_SET(CommandType.H_SET) { // 设置hash表
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            Database database = checkDB(client);
+            if (database == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject key = dataObjects[0];
+            Object value = getValue(database, key);
+            if (value != null && !(value instanceof Hash)) {
+                responseIllegal(client);
+                return;
+            }
+            DataObject innerKey = dataObjects[1];
+            DataObject val = dataObjects[2];
+            if (value != null) {
+                ((Hash) value).insert(innerKey, val);
+            } else {
+                Hash hash = new Hash(false);
+                database.keyspace.insert(key, hash);
+                hash.insert(innerKey, val);
+            }
+            responseOK(client);
         }
-    }, H_GET(CommandType.H_GET) {
+    }, H_GET(CommandType.H_GET) { // 获取内哈希的值
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            Hash hash = getHash(client, command);
+            if (hash == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject key = dataObjects[1];
+            responseData(client, (DataObject) hash.get(key));
         }
-    }, H_DEL(CommandType.H_DEL) {
+    }, H_DEL(CommandType.H_DEL) { // 删除内哈希键
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            Hash hash = getHash(client, command);
+            if (hash == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject key = dataObjects[1];
+            hash.remove(key);
+            responseOK(client);
         }
-    }, Z_ADD(CommandType.Z_ADD) {
+    }, Z_ADD(CommandType.Z_ADD) { // 有序集增加
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            Database database = checkDB(client);
+            if (database == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject key = dataObjects[0];
+            Object value = getValue(database, key);
+            if (value != null && !(value instanceof SortedSet)) {
+                responseIllegal(client);
+                return;
+            }
+            double score = dataObjects[1].getDouble();
+            DataObject dataObject = dataObjects[2];
+            if (value == null) {
+                SortedSet sortedSet = new SortedSet();
+                database.keyspace.insert(key, sortedSet);
+                sortedSet.insert(score, dataObject);
+            } else {
+                ((SortedSet) value).insert(score, dataObject);
+            }
+            responseOK(client);
         }
-    }, Z_DEL(CommandType.Z_DEL) {
+    }, Z_DEL(CommandType.Z_DEL) { // 有序集删除
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            SortedSet sortedSet = getSortedSet(client, command);
+            if (sortedSet == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject val = dataObjects[1];
+            sortedSet.remove(val);
+            responseOK(client);
         }
-    }, Z_RANGE(CommandType.Z_RANGE) {
+    }, Z_RANGE(CommandType.Z_RANGE) { // 有序集求范围
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            SortedSet sortedSet = getSortedSet(client, command);
+            if (sortedSet == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            int leftIndex = dataObjects[1].getInt();
+            int rightIndex = dataObjects[2].getInt();
+            if (leftIndex < 0 || rightIndex < 0 || leftIndex > rightIndex) {
+                responseIllegal(client);
+                return;
+            }
+            responseList(client, sortedSet.getRange(leftIndex, rightIndex));
         }
-    }, Z_RANGE_SCORE(CommandType.Z_RANGE_SCORE) {
+    }, Z_REVERSE_RANGE(CommandType.Z_REVERSE_RANGE) {
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            SortedSet sortedSet = getSortedSet(client, command);
+            if (sortedSet == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            int leftIndex = dataObjects[1].getInt();
+            int rightIndex = dataObjects[2].getInt();
+            if (leftIndex < 0 || rightIndex < 0 || leftIndex > rightIndex) {
+                responseIllegal(client);
+                return;
+            }
+            responseList(client, sortedSet.getReverseRange(leftIndex, rightIndex));
         }
-    }, Z_RANK(CommandType.Z_RANK) {
+    }, Z_RANGE_SCORE(CommandType.Z_RANGE_SCORE) { // 返回特定分数内的值集合
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            SortedSet sortedSet = getSortedSet(client, command);
+            if (sortedSet == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            double left = dataObjects[1].getDouble();
+            double right = dataObjects[2].getDouble();
+            if (left > right) {
+                responseIllegal(client);
+                return;
+            }
+            responseList(client, sortedSet.getRangeByScore(left, right));
         }
-    }, Z_REVERSE_RANK(CommandType.Z_REVERSE_RANK) {
+    }, Z_RANK(CommandType.Z_RANK) { // 获取排名
+
         @Override
         public void processCommand(Command command) {
-
+            Client client = command.getClient();
+            SortedSet sortedSet = getSortedSet(client, command);
+            if (sortedSet == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject val = dataObjects[1];
+            responseInt(client, sortedSet.rank(val));
         }
-    }, Z_SCORE(CommandType.Z_SCORE) {
+    }, Z_REVERSE_RANK(CommandType.Z_REVERSE_RANK) { // 获取逆向排名
+
         @Override
         public void processCommand(Command command) {
+            Client client = command.getClient();
+            SortedSet sortedSet = getSortedSet(client, command);
+            if (sortedSet == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject val = dataObjects[1];
+            responseInt(client, sortedSet.reverseRank(val));
+        }
+    }, Z_SCORE(CommandType.Z_SCORE) { // 获取分数
 
+        @Override
+        public void processCommand(Command command) {
+            Client client = command.getClient();
+            SortedSet sortedSet = getSortedSet(client, command);
+            if (sortedSet == null)
+                return;
+            DataObject[] dataObjects = command.getDataObjects();
+            DataObject val = dataObjects[1];
+            responseDouble(client, sortedSet.getScore(val));
         }
     };
     final byte instruction;
@@ -110,4 +325,99 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
     ServerCommandType(byte instruction) {
         this.instruction = instruction;
     }
+
+    protected Response response() {
+        return Response.getObject();
+    }
+
+    protected Database checkDB(Client client) {
+        int usedDb = client.usedDb;
+        if (usedDb == -1) {
+            client.channel.writeAndFlush(response().setClient(client)
+                    .setResponseType(ServerResponseType.DB_UNSELECTED));
+            return null;
+        }
+        return server.dbs[usedDb];
+    }
+
+    protected void responseOK(Client client) {
+        response().setClient(client).setResponseType(ServerResponseType.OK);
+    }
+
+    protected void responseNull(Client client) {
+        response().setClient(client).setResponseType(ServerResponseType.NULL);
+    }
+
+    protected void responseIllegal(Client client) {
+        response().setClient(client).setResponseType(ServerResponseType.ILLEGAL_COMMAND);
+    }
+
+    protected void responseConnectReset(Client client) {
+        response().setClient(client).setResponseType(ServerResponseType.CONNECT_RESET);
+    }
+
+    protected void responseData(Client client, DataObject dataObject) {
+        response().setClient(client).setResponseType(ServerResponseType.DATA).setDataObjects(dataObject);
+    }
+
+    protected Object getValue(Database database, DataObject dataObject) {
+        Long l = (Long) database.expire.get(dataObject);
+        if (l != null && System.currentTimeMillis() - l >= 0) { // 已经过期
+            database.keyspace.remove(dataObject);
+            database.expire.remove(dataObject);
+            return null;
+        }
+        return database.keyspace.get(dataObject);
+    }
+
+    protected void responseList(Client client, List<DataObject> list) {
+        response().setClient(client).setResponseType(ServerResponseType.LIST)
+                .setDataObjects(list.toArray(new DataObject[0]));
+    }
+
+    protected void responseInt(Client client, int i) {
+        response().setClient(client).setResponseType(ServerResponseType.INT).setiNum(i);
+    }
+
+    protected void responseDouble(Client client, double d) {
+        response().setClient(client).setResponseType(ServerResponseType.DOUBLE).setdNum(d);
+    }
+
+    protected SortedSet getSortedSet(Client client, Command command) { // commonPart for sortedSet
+        Database database = checkDB(client);
+        if (database == null)
+            return null;
+        DataObject[] dataObjects = command.getDataObjects();
+        DataObject key = dataObjects[0];
+        Object value = getValue(database, key);
+        if (value != null && !(value instanceof SortedSet)) {
+            responseIllegal(client);
+            return null;
+        }
+        if (value == null) {
+            responseNull(client);
+            return null;
+        }
+        return (SortedSet) value;
+    }
+
+    protected Hash getHash(Client client, Command command) { // commonPart for Hash
+        Database database = checkDB(client);
+        if (database == null)
+            return null;
+        DataObject[] dataObjects = command.getDataObjects();
+        DataObject key = dataObjects[0];
+        Object value = getValue(database, key);
+        if (value != null && !(value instanceof Hash)) {
+            responseIllegal(client);
+            return null;
+        }
+        if (value == null) {
+            responseNull(client);
+            return null;
+        }
+        return (Hash) value;
+    }
+
+    protected ServerHolder server = ServerHolder.INSTANCE;
 }
