@@ -1,5 +1,7 @@
 package top.zproto.ptpocket.server.datestructure;
 
+import io.netty.buffer.ByteBuf;
+
 import java.util.Random;
 
 /**
@@ -10,10 +12,21 @@ public class DataObject {
     byte[] data;
     int used;
 
-    static final int hashSeed = new Random().nextInt();
-
     public DataObject(int capacity) {
         data = new byte[capacity];
+    }
+
+    protected DataObject() {
+    }
+
+    public DataObject(ByteBuf buf) {
+        data = new byte[buf.readableBytes()];
+        buf.readBytes(data);
+    }
+
+    public DataObject(ByteBuf buf, int length) {
+        data = new byte[buf.readableBytes()];
+        buf.readBytes(data, 0, length);
     }
 
     public void write(byte[] data, int offset, int length) {
@@ -25,13 +38,13 @@ public class DataObject {
         this.data[used++] = data;
     }
 
-    public void writeInt(int num) {
+    public void writeInt(int num) { // testUse
         for (int i = 0; i < 4; i++) {
             data[used++] = (byte) (num >>> (i * 8) & 0xff);
         }
     }
 
-    public int getInt() {
+    public int getInt() { // testUse
         int res = 0;
         for (int i = 0; i < 4; i++) {
             res |= data[i] << i * 8;
@@ -53,6 +66,8 @@ public class DataObject {
         }
         return true;
     }
+
+    static final int hashSeed = new Random().nextInt();
 
     /**
      * murmurHash2 散列函数

@@ -1,5 +1,6 @@
 package top.zproto.ptpocket.server.core;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class ServerHolder {
@@ -10,14 +11,20 @@ public class ServerHolder {
 
     boolean shutdown = false;
 
-    long startTime = 0;
+    long startTime;
 
     public static final ServerHolder INSTANCE = new ServerHolder();
 
     private ServerHolder() {
     }
 
-    public ServerHolder explicitNewInstance() {
-        return new ServerHolder();
+    public void init(ServerConfiguration config) {
+        dbs = new Database[config.dbNums];
+        for (int i = 0; i < config.dbNums; i++) {
+            dbs[i] = new Database(i);
+        }
+        startTime = System.currentTimeMillis();
+        clients = new HashSet<>();
     }
+
 }

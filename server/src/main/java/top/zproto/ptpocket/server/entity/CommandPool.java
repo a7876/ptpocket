@@ -18,8 +18,10 @@ public class CommandPool implements ObjectPool<Command, CommandPool> {
 
     @Override
     public void returnObject(Command command) {
-        if (pool.size() < MAX_SIZE)
+        if (pool.size() < MAX_SIZE) {
+            command.clear();
             pool.add(command);
+        }
     }
 
     @Override

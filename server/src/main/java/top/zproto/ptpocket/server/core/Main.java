@@ -100,15 +100,14 @@ public class Main {
         return 5000;
     }
 
-    // 任务执行器
-    private final CommandProcessor commandProcessor = CommandProcessor.instance;
-
     /**
      * 执行命令
      */
     private void processCommand(int count) {
         for (int i = 0; i < count; i++) {
-            commandProcessor.process(server, commands[i]);
+            Command command = commands[i];
+            command.process();
+            command.returnObject();
         }
     }
 
@@ -122,7 +121,7 @@ public class Main {
 
     private void initDb(ServerConfiguration config) { // 初始化db
         server = ServerHolder.INSTANCE;
-        server.startTime = System.currentTimeMillis();
+        server.init(config);
     }
 
     private void serverReady(ServerConfiguration config) { // 打印提示

@@ -5,11 +5,11 @@ public class ServerConfiguration {
     String addr = LOCAL_HOST;
     int port = 7878;
     int IOThreads = 2;
-    int databases = 8;
-
     int timeOutLimit = 5; // 单位是分钟
 
     int bossGroupThread = 1; // 主reactor线程数，固定是1
+
+    int dbNums = 8; // 数据库数量
 
     private static volatile ServerConfiguration instance = null;
 
@@ -17,12 +17,18 @@ public class ServerConfiguration {
         if (instance == null) {
             synchronized (ServerConfiguration.class) {
                 if (instance == null) {
-                    instance = new ServerConfiguration();
+                    ServerConfiguration instance = new ServerConfiguration();
+                    instance.readConfig();
+                    ServerConfiguration.instance = instance;
                 }
                 return instance;
             }
         } else {
             return instance;
         }
+    }
+
+    void readConfig() {
+
     }
 }

@@ -18,8 +18,10 @@ public class ResponsePool implements ObjectPool<Response, ResponsePool> {
 
     @Override
     public void returnObject(Response response) {
-        if (pool.size() < MAX_SIZE)
+        if (pool.size() < MAX_SIZE) {
+            response.clear();
             pool.add(response);
+        }
     }
 
     @Override
