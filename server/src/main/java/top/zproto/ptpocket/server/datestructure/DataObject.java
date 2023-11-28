@@ -52,12 +52,17 @@ public class DataObject {
         return res;
     }
 
-    public double getDouble(){
+    public double getDouble() {
         throw new UnsupportedOperationException();
     }
 
     public void populate(ByteBuf buf) {
+        buf.writeInt(used); // 写入当前长度作为body Length 或者 在List中写入自己的长度
         buf.writeBytes(data);
+    }
+
+    public int getUsed() {
+        return used;
     }
 
     @Override

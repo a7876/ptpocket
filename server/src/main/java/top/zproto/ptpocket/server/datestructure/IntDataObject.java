@@ -11,6 +11,7 @@ public class IntDataObject extends DataObject {
 
     @Override
     public void populate(ByteBuf buf) {
+        buf.writeInt(4); // body长度
         buf.writeInt(num);
     }
 
@@ -18,4 +19,5 @@ public class IntDataObject extends DataObject {
     public int getInt() {
         return num;
     }
+
 }

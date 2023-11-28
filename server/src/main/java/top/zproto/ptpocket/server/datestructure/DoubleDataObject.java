@@ -11,6 +11,7 @@ public class DoubleDataObject extends DataObject {
 
     @Override
     public void populate(ByteBuf buf) {
+        buf.writeInt(4); // body长度
         buf.writeDouble(num);
     }
 
