@@ -3,6 +3,7 @@ package top.zproto.ptpocket.server.datestructure;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 有序列表实现，底层基于SkipList
@@ -64,6 +65,7 @@ public class SortedSet {
     }
 
     private static class SkipList {
+        // 注意这里是内部使用的SkipList，已经减去了很多不必要的检查同时也假设一些情况已经经过外层Hash表检查
         // 根据论文 max_level = log 1/p (N) N 为期待的最大元素，这里取 2 ^ 20 1024 * 1024
         private static final int MAX_LEVEL = 10;
         private static final double P = 0.25;
@@ -72,14 +74,19 @@ public class SortedSet {
         private static class Node {
             double key;
             DataObject val;
-            Node[] forward;
+            NodeAndSpan[] level;
             Node backward; // 从后往前的指针
 
-            public Node(double key, DataObject val, Node[] forward) {
+            public Node(double key, DataObject val, NodeAndSpan[] level) {
                 this.key = key;
                 this.val = val;
-                this.forward = forward;
+                this.level = level;
             }
+        }
+
+        private static class NodeAndSpan {
+            Node forward;
+            int span; // 注意span应该是从当前到下一个节点中间横跨的距离
         }
 
         private int currentLevel = 1;
@@ -87,19 +94,20 @@ public class SortedSet {
         private final Node tail;
 
         SkipList() {
-            this.head = new Node(0, null, new Node[MAX_LEVEL]);
-            this.tail = new Node(0, null, new Node[MAX_LEVEL]);
+            this.head = new Node(0, null, getNewLevel(MAX_LEVEL));
+            this.tail = new Node(0, null, getNewLevel(MAX_LEVEL));
             for (int i = 0; i < MAX_LEVEL; i++) {
-                head.forward[i] = tail;
+                head.level[i].forward = tail;
+                head.level[i].span = 0;
             }
             tail.backward = head;
         }
 
         Node get(double key, DataObject dataObject) {
             Node node = head;
-            for (int i = currentLevel - 1; i >= 0; i--) { // 这里基于一个事实，有i层高的必定又i-1层高
+            for (int i = currentLevel - 1; i >= 0; i--) {
                 Node tmp;
-                while ((tmp = node.forward[i]) != tail && (key > tmp.key || key == tmp.key && !tmp.val.equals(dataObject))) // 不断前进
+                while ((tmp = node.level[i].forward) != tail && (key > tmp.key || key == tmp.key && !tmp.val.equals(dataObject))) // 不断前进
                     node = tmp;
                 if (tmp != tail && key == tmp.key && tmp.val.equals(dataObject))
                     return tmp;
@@ -110,24 +118,36 @@ public class SortedSet {
         void insert(double key, DataObject value) {
             Node node = head;
             Node[] tmpArray = new Node[MAX_LEVEL]; // 缓存插入节点前经过的最近节点信息
+            int[] rank = new int[MAX_LEVEL];
             for (int i = currentLevel - 1; i >= 0; i--) {
+                rank[i] = i == currentLevel - 1 ? 0 : rank[i + 1]; // 取得当前位置的累计
                 Node tmp;
-                while ((tmp = node.forward[i]) != tail && key > tmp.key) // 不断前进
+                while ((tmp = node.level[i].forward) != tail && key > tmp.key) { // 不断前进
+                    rank[i] += node.level[i].span; // 累加距离
                     node = tmp;
+                }
                 tmpArray[i] = node; // 次层的前置节点
             }
             // 插入
             int tmpLevel = getRandomLevel();
             if (tmpLevel > currentLevel) { // 超高了
-                for (int i = currentLevel; i < tmpLevel; i++)
+                for (int i = currentLevel; i < tmpLevel; i++) {
                     tmpArray[i] = head;
+                    head.level[i].span = size; // 对于head这些新层应该还是横跨整个跳表
+                }
                 currentLevel = tmpLevel;
             }
-            node = new Node(key, value, new Node[tmpLevel]);
-            Node next = tmpArray[0].forward[0];
+            node = new Node(key, value, getNewLevel(tmpLevel));
+            Node next = tmpArray[0].level[0].forward;
             for (int i = 0; i < tmpLevel; i++) { // 调整指针
-                node.forward[i] = tmpArray[i].forward[i];
-                tmpArray[i].forward[i] = node;
+                node.level[i].forward = tmpArray[i].level[i].forward;
+                tmpArray[i].level[i].forward = node;
+                node.level[i].span = tmpArray[i].level[i].span - (rank[0] - rank[i]); // 设置当前节点当前层的span
+                tmpArray[i].level[i].span = rank[0] - rank[i] + 1; // 更新前置节点的span
+            }
+            // 这时候要注意可能当前层不够高有一些节点没有触及，此时这种也要加一
+            for (int i = tmpLevel; i < currentLevel; i++) {
+                tmpArray[i].level[i].span++;
             }
             node.backward = tmpArray[0]; // 记录前驱节点
             next.backward = node;
@@ -139,21 +159,24 @@ public class SortedSet {
             Node[] tmpArray = new Node[currentLevel];
             for (int i = currentLevel - 1; i >= 0; i--) {
                 Node tmp;
-                while ((tmp = node.forward[i]) != tail && (key > tmp.key || key == tmp.key && !tmp.val.equals(dataObject))) // 不断前进
+                while ((tmp = node.level[i].forward) != tail && (key > tmp.key || key == tmp.key && !tmp.val.equals(dataObject))) // 不断前进
                     node = tmp;
                 tmpArray[i] = node; // 次层的前置节点
             }
-            node = node.forward[0]; // 找到被删除节点
-            if (node != null) {
+            node = node.level[0].forward; // 找到被删除节点
+            if (node != tail && node.val.equals(dataObject)) {
                 Double oldKey = node.key;
                 for (int i = 0; i < currentLevel; i++) {
-                    if (tmpArray[i].forward[i] != node)
-                        break; // 没有和当前节点直接连接
-                    tmpArray[i].forward[i] = node.forward[i];
+                    if (tmpArray[i].level[i].forward != node) { // 没有连接到当前的点直接减少span即可
+                        tmpArray[i].level[i].span--;
+                    } else {
+                        tmpArray[i].level[i].forward = node.level[i].forward;
+                        tmpArray[i].level[i].span += node.level[i].span - 1; // 更新span
+                    }
                 }
-                Node next = node.forward[0];
+                Node next = node.level[0].forward;
                 next.backward = tmpArray[0];
-                while (currentLevel > 0 && head.forward[currentLevel - 1] == tail) currentLevel--; // 缩减高度
+                while (currentLevel > 0 && head.level[currentLevel - 1].forward == tail) currentLevel--; // 缩减高度
                 size--;
                 return oldKey;
             }
@@ -161,35 +184,28 @@ public class SortedSet {
             return null;
         }
 
-        Integer getRank(double score, DataObject dataObject) {
-            Node node = get(score, dataObject);
-            if (node == null)
-                return null;
-            int count = 0;
-            while (node.backward != head) {
-                count++;
-                node = node.backward;
+        int getRank(double score, DataObject dataObject) {
+            Node node = head;
+            int rank = 0;
+            for (int i = currentLevel - 1; i >= 0; i--) {
+                Node tmp;
+                while ((tmp = node.level[i].forward) != tail && (score > tmp.key || score == tmp.key && !tmp.val.equals(dataObject))) { // 不断前进
+                    rank += node.level[i].span;
+                    node = tmp;
+                }
             }
-            return count;
+            return dataObject.equals(node.level[0].forward.val) ? rank + 1 : -1;
         }
 
-        Integer getReverseRank(double score, DataObject dataObject) {
-            Node node = get(score, dataObject);
-            if (node == null)
-                return null;
-            int count = 0;
-            Node next;
-            while ((next = node.forward[0]) != tail) {
-                count++;
-                node = next;
-            }
-            return count;
+        int getReverseRank(double score, DataObject dataObject) {
+            int rank = getRank(score, dataObject);
+            return size - rank + 1;
         }
 
         List<DataObject> getRangeByScore(double start, double end) {
             Node node = head, tmp = null;
             for (int i = currentLevel - 1; i >= 0; i--) { // 这里基于一个事实，有i层高的必定又i-1层高
-                while ((tmp = node.forward[i]) != tail && (start > tmp.key)) // 不断前进
+                while ((tmp = node.level[i].forward) != tail && (start > tmp.key)) // 不断前进
                     node = tmp;
             }
             if (tmp == null)
@@ -197,18 +213,18 @@ public class SortedSet {
             ArrayList<DataObject> res = new ArrayList<>();
             while (tmp != null && tmp.key <= end) {
                 res.add(tmp.val);
-                tmp = tmp.forward[0];
+                tmp = tmp.level[0].forward;
             }
             return res;
         }
 
         List<DataObject> getRange(int nums) {
             ArrayList<DataObject> res = new ArrayList<>();
-            Node node = head.forward[0];
+            Node node = head.level[0].forward;
             int count = 0;
             while (node != tail && count < nums) {
                 res.add(node.val);
-                node = node.forward[0];
+                node = node.level[0].forward;
                 count++;
             }
             return res;
@@ -232,6 +248,14 @@ public class SortedSet {
             while (Math.random() < P && level < MAX_LEVEL)
                 level++;
             return level;
+        }
+
+        private NodeAndSpan[] getNewLevel(int level) {
+            NodeAndSpan[] nodeAndSpans = new NodeAndSpan[level];
+            for (int i = 0; i < level; i++) {
+                nodeAndSpans[i] = new NodeAndSpan();
+            }
+            return nodeAndSpans;
         }
     }
 }

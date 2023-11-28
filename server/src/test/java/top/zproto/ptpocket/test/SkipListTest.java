@@ -24,10 +24,12 @@ public class SkipListTest {
         sortedSet.insert(3, d3);
         if (sortedSet.getScore(d1) != 3)
             throw new IllegalStateException();
-        if (sortedSet.rank(d1) != 0)
+        if (sortedSet.rank(d1) != 1) {
             throw new IllegalStateException();
-        if (sortedSet.reverseRank(d1) != 0)
+        }
+        if (sortedSet.reverseRank(d1) != 1) {
             throw new IllegalStateException();
+        }
         sortedSet.remove(d1);
         if (sortedSet.getScore(d1) != null)
             throw new IllegalStateException();
@@ -44,12 +46,12 @@ public class SkipListTest {
         }
         SortedSet sortedSet = new SortedSet();
         Iterator<Integer> iterator = set.iterator();
-        while (iterator.hasNext()){ // 插入sortedset
+        while (iterator.hasNext()) { // 插入sortedset
             Integer item = iterator.next();
             DataObject dataObject = new DataObject(4);
             dataObject.writeInt(item);
             sortedSet.insert(item, dataObject);
-            if (random.nextBoolean() && item != lastNum){ // 随机删除
+            if (random.nextBoolean() && item != lastNum) { // 随机删除
                 iterator.remove();
                 sortedSet.remove(dataObject);
             }
@@ -99,7 +101,7 @@ public class SkipListTest {
             }
             range.clear();
             int count = 0;
-            while (count < size){
+            while (count < size) {
                 range.add(list.get(list.size() - count - 1));
                 count++;
             }
@@ -126,6 +128,7 @@ public class SkipListTest {
             for (int i : list)
                 if (i < lastNum)
                     lr++;
+            lr++; // 1开始
             if (rank != lr)
                 throw new IllegalStateException();
             int reverseRank = sortedSet.reverseRank(dataObject);
@@ -134,6 +137,7 @@ public class SkipListTest {
             for (int i : list)
                 if (i > lastNum)
                     lr++;
+            lr++; // 1开始
             if (reverseRank != lr)
                 throw new IllegalStateException();
         }
