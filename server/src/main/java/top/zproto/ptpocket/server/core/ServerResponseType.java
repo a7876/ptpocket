@@ -11,7 +11,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.DATA);
             response.getDataObjects()[0].populate(buf);
             response.returnObject();
         }
@@ -19,7 +18,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.NULL);
             noBody(buf);
             response.returnObject();
         }
@@ -27,7 +25,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.OK);
             noBody(buf);
             response.returnObject();
         }
@@ -35,7 +32,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.TRUE);
             noBody(buf);
             response.returnObject();
         }
@@ -43,7 +39,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.FALSE);
             noBody(buf);
             response.returnObject();
         }
@@ -51,7 +46,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.INT);
             buf.writeInt(4); // 写body长度
             buf.writeInt(response.getiNum());
             response.returnObject();
@@ -61,7 +55,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.DOUBLE);
             buf.writeInt(4); // 写body长度
             buf.writeDouble(response.getdNum());
             response.returnObject();
@@ -70,7 +63,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.LIST);
             int length = 0;
             DataObject[] dataObjects = response.getDataObjects();
             for (DataObject dataObject : dataObjects)
@@ -85,7 +77,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.UNKNOWN_COMMAND);
             noBody(buf);
             response.returnObject();
         }
@@ -93,7 +84,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.ILLEGAL_COMMAND);
             noBody(buf);
             response.returnObject();
         }
@@ -101,7 +91,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.CONNECT_RESET);
             noBody(buf);
             response.returnObject();
         }
@@ -109,7 +98,6 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeByte(ResponseType.DB_UNSELECTED);
             noBody(buf);
             response.returnObject();
         }
@@ -124,6 +112,7 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
     protected void commonPart(ByteBuf buf) { // 装配相同部分
         buf.writeInt(Protocol.MAGIC_NUM);
         buf.writeByte(Protocol.VERSION);
+        buf.writeByte(this.responseCode);
     }
 
     protected void noBody(ByteBuf buf) {

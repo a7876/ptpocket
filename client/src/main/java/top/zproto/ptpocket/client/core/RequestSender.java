@@ -10,6 +10,6 @@ public class RequestSender extends MessageToByteEncoder<Request> {
 
     @Override
     protected void encode(ChannelHandlerContext ctx, Request msg, ByteBuf out) throws Exception {
-
+        msg.convertTo(out);
     }
 }

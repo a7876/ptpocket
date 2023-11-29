@@ -8,14 +8,20 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.AttributeKey;
+import top.zproto.ptpocket.client.entity.Response;
 import top.zproto.ptpocket.client.exception.ConnectFailException;
+import top.zproto.ptpocket.client.exception.ConnectionAlreadyClosedException;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * client 主体
  */
-public class Client {
+public class Client implements Closeable {
     private String ipAddr;
     private int port;
     private NioEventLoopGroup group;
@@ -23,6 +29,11 @@ public class Client {
     private static final int THREAD_LIMIT = 10;
     private ChannelFuture future;
     private Channel channel;
+    private final LinkedBlockingQueue<Response> queue = new LinkedBlockingQueue<>(); // 阻塞等待对方抵达
+
+    public static final AttributeKey<Client> KEY = AttributeKey.newInstance("client");
+
+    private boolean isClose = false;
 
     private Client() {
     }
@@ -37,7 +48,7 @@ public class Client {
         Client client = new Client();
         client.ipAddr = ipAddr;
         client.port = port;
-        client.group = new NioEventLoopGroup(thread);
+        client.group = new NioEventLoopGroup(Math.min(thread, THREAD_LIMIT));
         client.connect();
         return client;
     }
@@ -73,13 +84,16 @@ public class Client {
         future.addListener(f -> {
             if (f.isSuccess()) {
                 channel = ((ChannelFuture) f).channel();
+                channel.attr(KEY).set(this);
             } else {
                 throw new ConnectFailException("client connect failed", f.cause());
             }
         });
     }
 
-    public Channel getChannel(){
+    public Channel getChannel() {
+        if (isClose)
+            throw new ConnectionAlreadyClosedException("connection already closed, maybe idle to long");
         if (channel != null)
             return channel;
         try {
@@ -88,5 +102,25 @@ public class Client {
             throw new RuntimeException(e);
         }
         return future.channel();
+    }
+
+
+    public Response getResponseSync() {
+        while (true) {
+            try {
+                return queue.take();
+            } catch (InterruptedException ignored) {
+            }
+        }
+    }
+
+    public void offerResponse(Response response) {
+        queue.offer(response);
+    }
+
+    @Override
+    public void close() throws IOException {
+        isClose = true;
+        channel.close();
     }
 }
