@@ -1,5 +1,7 @@
 package top.zproto.ptpocket.server.core;
 
+import top.zproto.ptpocket.server.entity.CommandPool;
+import top.zproto.ptpocket.server.entity.ResponsePool;
 import top.zproto.ptpocket.server.log.Logger;
 
 public class ServerCron implements TimeEvent {
@@ -11,6 +13,7 @@ public class ServerCron implements TimeEvent {
         keySpaceRehashCheck(ONCE_CHECK);
         memoryWatch();
         checkExpireKey();
+        checkObjectPool();
         logger.info("time event!");
     }
 
@@ -30,6 +33,7 @@ public class ServerCron implements TimeEvent {
         }
     }
 
+    // 内存检查
     private void memoryWatch() {
     }
 
@@ -44,12 +48,17 @@ public class ServerCron implements TimeEvent {
         int eachDb = ONCE_CHECK_EXPIRE / 5;
         while (count < ONCE_CHECK_EXPIRE && alreadyCheckDb < dbs.length) {
             lastCheckExpire %= dbs.length;
-            count += dbs[lastCheckExpire].expire.checkExpire(eachDb);
+            count += dbs[lastCheckExpire].expire.checkExpire(eachDb, dbs[lastCheckExpire].keyspace);
             lastCheckExpire++;
             alreadyCheckDb++;
         }
         if (count < ONCE_CHECK_EXPIRE / 2) { // 不够,有可能是有库在rehash
             keySpaceRehashCheck(ONCE_CHECK / 2); // 再尝试推进rehash
         }
+    }
+
+    private void checkObjectPool() {
+        CommandPool.instance.tryShrink();
+        ResponsePool.instance.tryShrink();
     }
 }

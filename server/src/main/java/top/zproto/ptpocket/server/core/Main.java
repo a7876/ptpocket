@@ -10,8 +10,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import top.zproto.ptpocket.server.entity.Command;
 import top.zproto.ptpocket.server.log.Logger;
 
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +28,7 @@ public class Main {
 
     // 入口
     public static void main(String[] args) {
-        ServerConfiguration config = ServerConfiguration.getConfig();
+        ServerConfiguration config = ServerConfiguration.getConfig(args);
         mainInstance.initNet(config);
         mainInstance.initDb(config);
         mainInstance.serverReady(config);
@@ -57,8 +55,10 @@ public class Main {
                 }
                 processTimeEvent();
             }
-            beforeExit();
         } catch (Throwable ignore) {
+            logger.panic("server exception occurred");
+        } finally {
+            beforeExit();
         }
     }
 
@@ -126,6 +126,13 @@ public class Main {
     }
 
     private void serverReady(ServerConfiguration config) { // 打印提示
+        String logo = "       _                    _        _   \n" +
+                " _ __ | |_ _ __   ___   ___| | _____| |_ \n" +
+                "| '_ \\| __| '_ \\ / _ \\ / __| |/ / _ \\ __|\n" +
+                "| |_) | |_| |_) | (_) | (__|   <  __/ |_ \n" +
+                "| .__/ \\__| .__/ \\___/ \\___|_|\\_\\___|\\__|\n" +
+                "|_|       |_|                            \n";
+        logger.print(logo);
         String ip = config.addr.equals(ServerConfiguration.LOCAL_HOST) ? "127.0.0.1" : config.addr;
         logger.info(String.format("server running in ip : %s, port : %d", ip, config.port));
         logger.info("server is ready to process command");

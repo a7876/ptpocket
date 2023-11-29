@@ -9,14 +9,15 @@ public class ServerConfiguration {
     int bossGroupThread = 1; // 主reactor线程数，固定是1
     int dbNums = 8; // 数据库数量
     int frequencyOfServerCron = 10; // 数据库定时任务频率，默认10hz
-
+    String[] startArgs;
     private static volatile ServerConfiguration instance = null;
 
-    static ServerConfiguration getConfig() {
+    static ServerConfiguration getConfig(String[] startArgs) {
         if (instance == null) {
             synchronized (ServerConfiguration.class) {
                 if (instance == null) {
                     ServerConfiguration instance = new ServerConfiguration();
+                    instance.startArgs = startArgs;
                     instance.readConfig();
                     ServerConfiguration.instance = instance;
                 }

@@ -19,4 +19,9 @@ public class StandardIOLogger implements Logger {
     public void panic(String msg) {
         System.err.println(PANIC_PREFIX + msg);
     }
+
+    @Override
+    public void print(String msg) {
+        System.out.println(msg);
+    }
 }
