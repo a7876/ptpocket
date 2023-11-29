@@ -20,9 +20,6 @@ public class Request {
         this.datas = datas;
     }
 
-    public ClientRequestType getType() {
-        return type;
-    }
 
     public void setType(ClientRequestType type) {
         this.type = type;

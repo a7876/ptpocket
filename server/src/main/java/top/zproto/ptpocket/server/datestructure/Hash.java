@@ -1,8 +1,5 @@
 package top.zproto.ptpocket.server.datestructure;
 
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
 public class Hash implements DataStructure {
     // 主库和副库，副库再rehash时和主库一起使用
     private HashImpl main, sub;

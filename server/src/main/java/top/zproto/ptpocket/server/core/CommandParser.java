@@ -9,8 +9,6 @@ import top.zproto.ptpocket.server.datestructure.IntDataObject;
 import top.zproto.ptpocket.server.entity.Command;
 import top.zproto.ptpocket.server.entity.CommandPool;
 
-import java.security.Key;
-
 import static top.zproto.ptpocket.server.core.ServerCommandType.*;
 
 public class CommandParser implements Protocol {

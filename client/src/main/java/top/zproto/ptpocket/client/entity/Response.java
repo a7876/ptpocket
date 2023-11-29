@@ -1,5 +1,7 @@
 package top.zproto.ptpocket.client.entity;
 
+import io.netty.buffer.ByteBuf;
+
 import java.util.List;
 
 public class Response {
@@ -13,39 +15,50 @@ public class Response {
         return bRes;
     }
 
-    public void setbRes(boolean bRes) {
+    public Response setbRes(boolean bRes) {
         this.bRes = bRes;
+        return this;
     }
 
     public byte[] getData() {
         return data;
     }
 
-    public void setData(byte[] data) {
-        this.data = data;
+    public Response setData(ByteBuf buf) {
+        if (buf == null) {
+            this.data = null;
+            return this;
+        }
+        int length = buf.readableBytes();
+        this.data = new byte[length];
+        buf.readBytes(this.data);
+        return this;
     }
 
     public int getiNum() {
         return iNum;
     }
 
-    public void setiNum(int iNum) {
+    public Response setiNum(int iNum) {
         this.iNum = iNum;
+        return this;
     }
 
     public double getdNum() {
         return dNum;
     }
 
-    public void setdNum(double dNum) {
+    public Response setdNum(double dNum) {
         this.dNum = dNum;
+        return this;
     }
 
     public List<byte[]> getDatas() {
         return datas;
     }
 
-    public void setDatas(List<byte[]> datas) {
+    public Response setDatas(List<byte[]> datas) {
         this.datas = datas;
+        return this;
     }
 }

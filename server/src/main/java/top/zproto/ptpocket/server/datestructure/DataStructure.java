@@ -5,7 +5,4 @@ package top.zproto.ptpocket.server.datestructure;
  * 标记接口
  */
 public interface DataStructure {
-    enum DateStructureType {
-        HASH, SORT_SET, DATE_OBJECT
-    }
 }

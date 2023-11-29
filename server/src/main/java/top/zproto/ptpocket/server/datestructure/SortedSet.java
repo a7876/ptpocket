@@ -3,7 +3,6 @@ package top.zproto.ptpocket.server.datestructure;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 有序列表实现，底层基于SkipList

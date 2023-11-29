@@ -2,7 +2,7 @@ package top.zproto.ptpocket.server.entity;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class ResponsePool implements ObjectPool<Response, ResponsePool> {
+public class ResponsePool implements ObjectPool<Response> {
     // 对象池，获取响应对象
     public static final ResponsePool instance = new ResponsePool();
     private final ConcurrentLinkedQueue<Response> pool = new ConcurrentLinkedQueue<>();

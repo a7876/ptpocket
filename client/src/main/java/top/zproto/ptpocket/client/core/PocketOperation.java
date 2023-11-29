@@ -16,7 +16,7 @@ public class PocketOperation {
     private PocketOperation() {
     }
 
-    public PocketOperation getInstance(Client client) {
+    public static PocketOperation getInstance(Client client) {
         if (client == null)
             throw new NullPointerException("client can't be null");
         PocketOperation pocketOperation = new PocketOperation();
@@ -28,7 +28,6 @@ public class PocketOperation {
     /**
      * 各类指令
      */
-
     public boolean set(byte[] key, byte[] value) {
         notEmpty(key, value);
         return commonPart(ClientRequestType.SET, fromByteArray(key), fromByteArray(value)).isbRes();
@@ -121,6 +120,9 @@ public class PocketOperation {
         return client.getChannel();
     }
 
+    /**
+     * 公共的处理部分
+     */
     private Response commonPart(ClientRequestType type, DataWrapper... bytes) {
         Request request = new Request();
         request.setDatas(bytes);

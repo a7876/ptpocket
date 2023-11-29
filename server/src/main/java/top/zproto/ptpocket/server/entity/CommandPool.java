@@ -2,7 +2,7 @@ package top.zproto.ptpocket.server.entity;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class CommandPool implements ObjectPool<Command, CommandPool> {
+public class CommandPool implements ObjectPool<Command> {
     // 对象池，获取命令对象
     public static final CommandPool instance = new CommandPool();
     private final ConcurrentLinkedQueue<Command> pool = new ConcurrentLinkedQueue<>();
