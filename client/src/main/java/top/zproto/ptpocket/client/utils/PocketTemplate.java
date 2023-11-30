@@ -85,10 +85,11 @@ public class PocketTemplate<T> implements Closeable {
         return operation.zScore(objectEncoder.encode(key), objectEncoder.encode(value));
     }
 
-    public String info(){
+    public String info() {
         return operation.info();
     }
-    public boolean select(byte dbNum){
+
+    public boolean select(byte dbNum) {
         return operation.select(dbNum);
     }
 
@@ -96,12 +97,12 @@ public class PocketTemplate<T> implements Closeable {
         return operation.del(objectEncoder.encode(key));
     }
 
-    public boolean expire(int expireTime) {
-        return operation.expire(expireTime);
+    public boolean expire(T key, int expireTime) {
+        return operation.expire(objectEncoder.encode(key), expireTime);
     }
 
-    public boolean expireMill(int expireTime) {
-        return operation.expireMill(expireTime);
+    public boolean expireMill(T key, int expireTime) {
+        return operation.expireMill(objectEncoder.encode(key), expireTime);
     }
 
     public boolean persist(T key) {

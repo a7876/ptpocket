@@ -101,12 +101,14 @@ public class PocketOperation implements Closeable {
         return commonPart(ClientRequestType.DEL, fromByteArray(key)).isbRes();
     }
 
-    public boolean expire(int expireTime) {
-        return commonPart(ClientRequestType.EXPIRE, fromInt(expireTime)).isbRes();
+    public boolean expire(byte[] key, int expireTime) {
+        notEmpty(key);
+        return commonPart(ClientRequestType.EXPIRE, fromByteArray(key), fromInt(expireTime)).isbRes();
     }
 
-    public boolean expireMill(int expireTime) {
-        return commonPart(ClientRequestType.EXPIRE_MILL, fromInt(expireTime)).isbRes();
+    public boolean expireMill(byte[] key, int expireTime) {
+        notEmpty(key);
+        return commonPart(ClientRequestType.EXPIRE_MILL, fromByteArray(key), fromInt(expireTime)).isbRes();
     }
 
     public boolean persist(byte[] key) {

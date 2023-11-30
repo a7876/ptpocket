@@ -16,13 +16,14 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Test {
 
     // 一秒钟内可以处理两万条命令
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         Test test = new Test();
 //        test.warmUp();
 //        test.performanceTest();
 //        test.hashTest();
 //        test.innerHashTest();
-        test.sortedSetTest();
+//        test.sortedSetTest();
+        test.otherCommand();
     }
 
 
@@ -37,6 +38,54 @@ public class Test {
         template.close();
     }
 
+    private void otherCommand() throws InterruptedException, IOException {
+        // expire
+        PocketTemplate<String> template = getTemplate();
+        String key = "name", value = "liming";
+        template.set(key, value);
+        if (!template.get(key).equals(value))
+            throw new IllegalStateException();
+        template.expire(key, 1);
+        Thread.sleep(1000);
+        if (template.get(key) != null)
+            throw new IllegalStateException();
+
+        // expireMill
+        template.set(key, value);
+        if (!template.get(key).equals(value))
+            throw new IllegalStateException();
+        template.expireMill(key, 1000);
+        Thread.sleep(1000);
+        if (template.get(key) != null)
+            throw new IllegalStateException();
+
+        // persist
+        template.set(key, value);
+        if (!template.get(key).equals(value))
+            throw new IllegalStateException();
+        template.expireMill(key, 1000);
+        template.persist(key);
+        Thread.sleep(1000);
+        if (template.get(key) == null)
+            throw new IllegalStateException();
+
+        // select
+        template.select((byte) 2);
+        template.set(key, value);
+        template.select((byte) 3);
+        if (template.get(key) != null)
+            throw new IllegalStateException();
+        template.del(key);
+        template.select((byte) 2);
+        if (!value.equals(template.get(key)))
+            throw new IllegalStateException();
+        template.del(key);
+
+        System.out.println(template.stop());
+
+        System.out.println("other command test finish");
+        template.close();
+    }
 
     private void hashTest() throws IOException {
         PocketTemplate<String> template = getTemplate();
