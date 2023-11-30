@@ -100,4 +100,8 @@ public class ServerHolder {
     private boolean checkClosestTimeEventIfReach() {
         return System.currentTimeMillis() - closestTimeEvent.triggerTime >= 0;
     }
+
+    public int getDbNumbs() {
+        return dbs.length;
+    }
 }

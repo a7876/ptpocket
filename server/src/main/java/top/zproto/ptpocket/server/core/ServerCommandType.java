@@ -92,7 +92,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                 responseIllegal(client);
                 return;
             }
-            client.usedDb = dbNum;
+            client.usedDb = (byte) dbNum;
             responseOK(client);
         }
     }, PERSIST(CommandType.PERSIST) { // 取消过期键
@@ -346,7 +346,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             responseString(command.getClient(), str);
         }
     };
-    final byte instruction;
+    public final byte instruction;
 
     ServerCommandType(byte instruction) {
         this.instruction = instruction;

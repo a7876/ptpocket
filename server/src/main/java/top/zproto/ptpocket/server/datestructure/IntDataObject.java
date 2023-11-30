@@ -20,4 +20,23 @@ public class IntDataObject extends DataObject {
         return num;
     }
 
+    @Override
+    public int getUsed() {
+        return 4; // always 4
+    }
+
+    @Override
+    public void copyTo(byte[] bytes, int index) {
+        for (int i = 0; i < 4; i++) {
+            bytes[index++] = (byte) (num >>> (i * 8) & 0xff);
+        }
+    }
+
+    public static DataObject getFromInt(byte[] bytes, int index) {
+        int res = 0;
+        for (int i = 0; i < 4; i++) {
+            res |= bytes[index++] << i * 8;
+        }
+        return new IntDataObject(res);
+    }
 }

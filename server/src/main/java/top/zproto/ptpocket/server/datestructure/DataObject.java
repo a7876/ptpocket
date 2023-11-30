@@ -32,6 +32,12 @@ public class DataObject {
         buf.readBytes(data, 0, length);
     }
 
+    public DataObject(byte[] bytes, int offset, int length) {
+        this.data = new byte[length];
+        used = length;
+        System.arraycopy(bytes, offset, data, 0, length);
+    }
+
     public void write(byte[] data, int offset, int length) {
         System.arraycopy(data, offset, data, used, length);
         used += length;
@@ -47,6 +53,10 @@ public class DataObject {
         }
     }
 
+    public void copyTo(byte[] bytes, int index) {
+        System.arraycopy(data, 0, bytes, index, used);
+    }
+
     public int getInt() { // testUse
         int res = 0;
         for (int i = 0; i < 4; i++) {
@@ -59,14 +69,22 @@ public class DataObject {
         throw new UnsupportedOperationException();
     }
 
+    public long getLong() {
+        throw new UnsupportedOperationException();
+    }
+
     public void populate(ByteBuf buf) {
         buf.writeInt(used); // 写入当前长度作为body Length 或者 在List中写入自己的长度
         buf.writeBytes(data);
     }
 
+    /**
+     * 这个方法子类都会重写
+     */
     public int getUsed() {
         return used;
     }
+
 
     @Override
     public boolean equals(Object o) {
