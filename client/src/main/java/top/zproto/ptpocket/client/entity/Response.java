@@ -10,6 +10,7 @@ public class Response {
     List<byte[]> datas;
     int iNum;
     double dNum;
+    String string;
 
     public boolean isbRes() {
         return bRes;
@@ -17,6 +18,15 @@ public class Response {
 
     public Response setbRes(boolean bRes) {
         this.bRes = bRes;
+        return this;
+    }
+
+    public String getString() {
+        return string;
+    }
+
+    public Response setString(String string) {
+        this.string = string;
         return this;
     }
 

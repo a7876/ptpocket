@@ -21,6 +21,12 @@ public class PocketTemplate<T> {
         operation = PocketOperation.getInstance(client);
     }
 
+    public PocketTemplate(Client client, ObjectEncoder<T> objectEncoder, ObjectDecoder<T> objectDecoder, byte defaultDB) {
+        this(client, objectEncoder, objectDecoder);
+        if (!this.select(defaultDB))
+            throw new RuntimeException("default db selected failed");
+    }
+
     public boolean set(T key, T value) {
         return operation.set(objectEncoder.encode(key), objectEncoder.encode(value));
     }
@@ -75,6 +81,13 @@ public class PocketTemplate<T> {
 
     public double zScore(T key, T value) {
         return operation.zScore(objectEncoder.encode(key), objectEncoder.encode(value));
+    }
+
+    public String info(){
+        return operation.info();
+    }
+    public boolean select(byte dbNum){
+        return operation.select(dbNum);
     }
 
     public boolean del(T key) {

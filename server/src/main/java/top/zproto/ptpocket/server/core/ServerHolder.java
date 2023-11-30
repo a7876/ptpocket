@@ -14,6 +14,9 @@ public class ServerHolder {
     long startTime;
     long totalCommandCount = 0; // 运行到如今执行过的指令数
 
+    // 统计运行至今一秒最多可以执行多少条命令
+    int commandProcessedEachSecondHeapValue = 0;
+
     static class TimeEventHolder { // 时间事件类
         long triggerTime;
         TimeEvent.TimeEventType type;
@@ -38,7 +41,7 @@ public class ServerHolder {
         }
         startTime = System.currentTimeMillis();
         clients = new HashSet<>();
-        registerTimeEvent(new ServerCron(), TimeEvent.TimeEventType.INTERVAL,
+        registerTimeEvent(new ServerCron(config), TimeEvent.TimeEventType.INTERVAL,
                 1000 / config.frequencyOfServerCron);
     }
 
@@ -77,6 +80,8 @@ public class ServerHolder {
     }
 
     public void processTimeEvent() { // 必须先调用getTriggerTimeOfClosestTimeEvent再调用此
+        if (!checkClosestTimeEventIfReach()) // 如果时间还未到没有必要执行
+            return;
         closestTimeEvent.timeEvent.processTimeEvent();
         if (closestTimeEvent.type == TimeEvent.TimeEventType.ONCE) { // 摘去
             if (closestTimeEvent.pre != null) {
@@ -90,5 +95,9 @@ public class ServerHolder {
             closestTimeEvent.triggerTime = System.currentTimeMillis() + closestTimeEvent.interval;
         }
         closestTimeEvent = null;
+    }
+
+    private boolean checkClosestTimeEventIfReach() {
+        return System.currentTimeMillis() - closestTimeEvent.triggerTime >= 0;
     }
 }

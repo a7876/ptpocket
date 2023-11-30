@@ -30,12 +30,16 @@ public class Main {
         ServerConfiguration config = ServerConfiguration.getConfig(args);
         mainInstance.initNet(config);
         mainInstance.initDb(config);
+        mainInstance.commandBatch = 1000 / config.frequencyOfServerCron; // 按照一毫秒处理一个命令来算
+        if (mainInstance.commandBatch < 10) // 最低是10
+            mainInstance.commandBatch = 10;
+        mainInstance.commands = new Command[mainInstance.commandBatch];
         mainInstance.serverReady(config);
         mainInstance.mainLoop();
     }
 
-    private final int BATCH = 10; // 一次性最多处理多少个请求
-    private final Command[] commands = new Command[BATCH];
+    private int commandBatch; // 一次性最多处理多少个请求
+    private Command[] commands;
 
     /**
      * 主循环
@@ -48,13 +52,15 @@ public class Main {
                 Command c = requests.poll(time, TimeUnit.MILLISECONDS); // 允许阻塞一定时间
                 if (c != null) {
                     commands[count++] = c;
-                    while (count != BATCH && (c = requests.poll()) != null)
+                    while (count != commandBatch && (c = requests.poll()) != null)
                         commands[count++] = c;
                     processCommand(count);
                 }
                 processTimeEvent();
             }
-        } catch (Throwable ignore) {
+        } catch (Throwable ex) {
+            logger.panic(ex.toString());
+            ex.printStackTrace();
             logger.panic("server exception occurred");
         } finally {
             beforeExit();
@@ -78,8 +84,8 @@ public class Main {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline().addLast(new TimeOutHandler(config)); // 超时处理
                         ch.pipeline().addLast(new PacketSplitHandler()); // 粘包处理
-                        ch.pipeline().addLast(RequestHandler.instance); // 请求处理器
-                        ch.pipeline().addLast(ResponseHandler.instance); // 响应处理器
+                        ch.pipeline().addLast(new RequestHandler()); // 请求处理器
+                        ch.pipeline().addLast(new ResponseHandler()); // 响应处理器
                     }
                 });
         bootstrap.bind(config.addr, config.port).addListener(f -> {
@@ -115,7 +121,7 @@ public class Main {
     /**
      * 处理时间事件
      */
-    private void processTimeEvent() {
+    private void processTimeEvent() { // 必须一对一地执行此命令之前执行一次timeCanWait
         server.processTimeEvent();
     }
 

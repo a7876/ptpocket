@@ -5,12 +5,17 @@ import top.zproto.ptpocket.server.datestructure.DataObject;
 import top.zproto.ptpocket.server.datestructure.Hash;
 import top.zproto.ptpocket.server.datestructure.SortedSet;
 import top.zproto.ptpocket.server.entity.Command;
+import top.zproto.ptpocket.server.entity.CommandPool;
 import top.zproto.ptpocket.server.entity.Response;
+import top.zproto.ptpocket.server.entity.ResponsePool;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
+/**
+ * 一一对应的命令处理枚举类
+ */
 public enum ServerCommandType implements CommandType, CommandProcessor {
     UNKNOWN_COMMAND(RESERVED_0) {
         @Override
@@ -122,6 +127,10 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                 return;
             DataObject key = command.getDataObjects()[0];
             Object value = getValue(database, key);
+            if (value == null) {
+                responseNull(client);
+                return;
+            }
             if (value instanceof DataObject) { // 检查是否是真确的类型
                 responseData(client, (DataObject) value);
             } else {
@@ -319,6 +328,23 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             DataObject val = dataObjects[1];
             responseDouble(client, sortedSet.getScore(val));
         }
+    }, INFO(CommandType.INFO) {
+        @Override
+        public void processCommand(Command command) {
+            Database[] dbs = server.dbs;
+            long total = 0;
+            for (Database db : dbs)
+                total += db.keyspace.getSize();
+            String str = String.format("highest process command each second is %d \n" +
+                            "command pool heap size is %d\n" +
+                            "response pool heap size is %d\n" +
+                            "keySpace total size is %d\n"
+                    , server.commandProcessedEachSecondHeapValue
+                    , CommandPool.instance.getHeapSize()
+                    , ResponsePool.instance.getHeapSize()
+                    , total);
+            responseString(command.getClient(), str);
+        }
     };
     final byte instruction;
 
@@ -344,23 +370,28 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
     }
 
     protected void responseOK(Client client) {
-        response().setClient(client).setResponseType(ServerResponseType.OK);
+        client.channel.writeAndFlush(response().setClient(client).setResponseType(ServerResponseType.OK));
+    }
+
+    protected void responseString(Client client, String s) {
+        client.channel.writeAndFlush(response().setClient(client)
+                .setResponseType(ServerResponseType.STRING).setString(s));
     }
 
     protected void responseNull(Client client) {
-        response().setClient(client).setResponseType(ServerResponseType.NULL);
+        client.channel.writeAndFlush(response().setClient(client).setResponseType(ServerResponseType.NULL));
     }
 
     protected void responseIllegal(Client client) {
-        response().setClient(client).setResponseType(ServerResponseType.ILLEGAL_COMMAND);
+        client.channel.writeAndFlush(response().setClient(client).setResponseType(ServerResponseType.ILLEGAL_COMMAND));
     }
 
     protected void responseConnectReset(Client client) {
-        response().setClient(client).setResponseType(ServerResponseType.CONNECT_RESET);
+        client.channel.writeAndFlush(response().setClient(client).setResponseType(ServerResponseType.CONNECT_RESET));
     }
 
     protected void responseData(Client client, DataObject dataObject) {
-        response().setClient(client).setResponseType(ServerResponseType.DATA).setDataObjects(dataObject);
+        client.channel.writeAndFlush(response().setClient(client).setResponseType(ServerResponseType.DATA).setDataObjects(dataObject));
     }
 
     /**
@@ -377,16 +408,16 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
     }
 
     protected void responseList(Client client, List<DataObject> list) {
-        response().setClient(client).setResponseType(ServerResponseType.LIST)
-                .setDataObjects(list.toArray(new DataObject[0]));
+        client.channel.writeAndFlush(response().setClient(client).setResponseType(ServerResponseType.LIST)
+                .setDataObjects(list.toArray(new DataObject[0])));
     }
 
     protected void responseInt(Client client, int i) {
-        response().setClient(client).setResponseType(ServerResponseType.INT).setiNum(i);
+        client.channel.writeAndFlush(response().setClient(client).setResponseType(ServerResponseType.INT).setiNum(i));
     }
 
     protected void responseDouble(Client client, double d) {
-        response().setClient(client).setResponseType(ServerResponseType.DOUBLE).setdNum(d);
+        client.channel.writeAndFlush(response().setClient(client).setResponseType(ServerResponseType.DOUBLE).setdNum(d));
     }
 
     /**

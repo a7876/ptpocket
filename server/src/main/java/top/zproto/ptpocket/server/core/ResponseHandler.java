@@ -5,8 +5,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import top.zproto.ptpocket.server.entity.Response;
 
+import java.io.IOException;
+
 public class ResponseHandler extends MessageToByteEncoder<Response> {
-    public static final ResponseHandler instance = new ResponseHandler();
 
     @Override
     protected void encode(ChannelHandlerContext ctx, Response msg, ByteBuf out) throws Exception {

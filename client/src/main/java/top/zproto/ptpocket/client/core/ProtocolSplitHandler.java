@@ -7,7 +7,7 @@ import top.zproto.ptpocket.client.exception.UnknownDataPacketReceivedException;
 import top.zproto.ptpocket.common.Protocol;
 
 public class ProtocolSplitHandler extends LengthFieldBasedFrameDecoder {
-    private static final int PREFIX_LENGTH = Protocol.MAGIC_NUM + Protocol.VERSION_LENGTH + Protocol.COMMAND_LENGTH;
+    private static final int PREFIX_LENGTH = Protocol.MAGIC_NUM_LENGTH + Protocol.VERSION_LENGTH + Protocol.COMMAND_LENGTH;
 
     public ProtocolSplitHandler() {
         super(Protocol.BODY_LENGTH_LIMIT + PREFIX_LENGTH + Protocol.BODY_LENGTH

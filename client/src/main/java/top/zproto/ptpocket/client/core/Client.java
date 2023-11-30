@@ -76,8 +76,8 @@ public class Client implements Closeable {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline().addLast(new ProtocolSplitHandler());
-                        ch.pipeline().addLast(ResponseAcceptor.INSTANCE);
-                        ch.pipeline().addLast(RequestSender.INSTANCE);
+                        ch.pipeline().addLast(new ResponseAcceptor());
+                        ch.pipeline().addLast(new RequestSender());
                     }
                 }).option(ChannelOption.TCP_NODELAY, true); // 关闭Nagle
         future = bootstrap.connect(new InetSocketAddress(ipAddr, port));

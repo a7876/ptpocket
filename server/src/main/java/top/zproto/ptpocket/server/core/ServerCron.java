@@ -8,13 +8,22 @@ public class ServerCron implements TimeEvent {
     private final ServerHolder server = ServerHolder.INSTANCE;
     private final Logger logger = Logger.DEFAULT;
 
+    private long lastTimeAlreadyProcess = 0;
+    private long lastCronTime = System.currentTimeMillis();
+
+    private final ServerConfiguration configuration;
+
+    ServerCron(ServerConfiguration configuration) {
+        this.configuration = configuration;
+    }
+
     @Override
     public void processTimeEvent() {
         keySpaceRehashCheck(ONCE_CHECK);
         memoryWatch();
         checkExpireKey();
         checkObjectPool();
-        logger.info("time event!");
+        calcEachSecondStatistic();
     }
 
     // 上次检查到的数据库序号
@@ -60,5 +69,16 @@ public class ServerCron implements TimeEvent {
     private void checkObjectPool() {
         CommandPool.instance.tryShrink();
         ResponsePool.instance.tryShrink();
+    }
+
+    private void calcEachSecondStatistic() {
+        long totalCommandCount = server.totalCommandCount;
+        int diff = (int) (totalCommandCount - lastTimeAlreadyProcess);
+        lastTimeAlreadyProcess = totalCommandCount;
+        long lastCronTime = this.lastCronTime;
+        this.lastCronTime = System.currentTimeMillis();
+        int forEachSecond = diff * (int) (1000 / (this.lastCronTime - lastCronTime));
+        if (server.commandProcessedEachSecondHeapValue < forEachSecond)
+            server.commandProcessedEachSecondHeapValue = forEachSecond;
     }
 }

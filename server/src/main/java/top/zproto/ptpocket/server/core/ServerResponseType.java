@@ -6,6 +6,9 @@ import top.zproto.ptpocket.common.ResponseType;
 import top.zproto.ptpocket.server.datestructure.DataObject;
 import top.zproto.ptpocket.server.entity.Response;
 
+/**
+ * 各类响应处理枚举
+ */
 public enum ServerResponseType implements ResponseType, ResponseProcessor {
     DATA(ResponseType.DATA) {
         @Override
@@ -71,6 +74,15 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
             buf.writeInt(length); // 写body长度
             for (DataObject dataObject : dataObjects)
                 dataObject.populate(buf);
+            response.returnObject();
+        }
+    }, STRING(ResponseType.STRING) {
+        @Override
+        public void processResponse(Response response, ByteBuf buf) {
+            commonPart(buf);
+            byte[] bytes = response.getString().getBytes();
+            buf.writeInt(bytes.length);
+            buf.writeBytes(bytes);
             response.returnObject();
         }
     }, UNKNOWN_COMMAND(ResponseType.UNKNOWN_COMMAND) {

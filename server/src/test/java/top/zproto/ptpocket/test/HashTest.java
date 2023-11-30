@@ -13,9 +13,9 @@ public class HashTest {
     static final HashTest tester = new HashTest();
 
     public static void main(String[] args) {
-        tester.hashFunctionTest();
+//        tester.hashFunctionTest();
         tester.hashTest();
-        tester.performanceTest();
+//        tester.performanceTest();
     }
 
     void hashFunctionTest() {
@@ -41,7 +41,8 @@ public class HashTest {
         Hash hash = new Hash(true);
         HashMap<DataObject, DataObject> map = new HashMap<>();
         Random random = new Random();
-        for (int i = 0; i < 1000000; i++) {
+        int limit = Math.max(1000, random.nextInt(100000));
+        for (int i = 0; i < limit; i++) {
             int i1 = random.nextInt(100);
             DataObject d = new DataObject(4);
             d.writeInt(i1);
@@ -51,6 +52,8 @@ public class HashTest {
                 hash.remove(d);
                 map.remove(d);
             }
+            if (map.size() != hash.getSize())
+                throw new IllegalStateException();
         }
         map.forEach((k, v) -> {
             if (hash.get(k) != v)

@@ -1,15 +1,17 @@
 package top.zproto.ptpocket.server.core;
 
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.util.AttributeKey;
 import top.zproto.ptpocket.server.entity.Command;
 
+import java.io.IOException;
 import java.util.List;
 
 public class RequestHandler extends ByteToMessageDecoder {
-    public final static RequestHandler instance = new RequestHandler();
     private final CommandParser parser = CommandParser.instance;
 
     private static final AttributeKey<Client> CLIENT = AttributeKey.newInstance("clients");
@@ -34,5 +36,12 @@ public class RequestHandler extends ByteToMessageDecoder {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception { // 处理连接关闭
         ServerHolder.INSTANCE.clients.remove(ctx.channel().attr(CLIENT).get());
         super.channelInactive(ctx);
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        if (cause instanceof IOException)
+            return;
+        super.exceptionCaught(ctx, cause);
     }
 }

@@ -7,6 +7,7 @@ public class ResponsePool implements ObjectPool<Response> {
     public static final ResponsePool instance = new ResponsePool();
     private final ConcurrentLinkedQueue<Response> pool = new ConcurrentLinkedQueue<>();
     private static final int MAX_SIZE = 50;
+    private int heapSize = 0;
 
     @Override
     public Response getObject() {
@@ -21,6 +22,9 @@ public class ResponsePool implements ObjectPool<Response> {
         if (pool.size() < MAX_SIZE) {
             response.clear();
             pool.add(response);
+            int size = pool.size();
+            if (size > heapSize)
+                heapSize = size;
         }
     }
 
@@ -28,5 +32,9 @@ public class ResponsePool implements ObjectPool<Response> {
     public void tryShrink() {
         while (pool.size() > MAX_SIZE)
             pool.poll();
+    }
+
+    public int getHeapSize() {
+        return heapSize;
     }
 }

@@ -20,12 +20,15 @@ public class DataObject {
     }
 
     public DataObject(ByteBuf buf) {
-        data = new byte[buf.readableBytes()];
+        int length = buf.readableBytes();
+        data = new byte[length];
         buf.readBytes(data);
+        used = length;
     }
 
     public DataObject(ByteBuf buf, int length) {
-        data = new byte[buf.readableBytes()];
+        data = new byte[length];
+        used = length;
         buf.readBytes(data, 0, length);
     }
 

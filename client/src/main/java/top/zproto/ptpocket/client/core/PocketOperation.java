@@ -112,8 +112,16 @@ public class PocketOperation {
         return commonPart(ClientRequestType.PERSIST, fromByteArray(key)).isbRes();
     }
 
+    public boolean select(byte dbNum) {
+        return commonPart(ClientRequestType.SELECT, fromByte(dbNum)).isbRes();
+    }
+
     public boolean stop() {
         return commonPart(ClientRequestType.STOP).isbRes();
+    }
+
+    public String info(){
+        return commonPart(ClientRequestType.INFO).getString();
     }
 
     private Channel getChannel() {
@@ -141,6 +149,10 @@ public class PocketOperation {
 
     private DataWrapper fromDouble(double num) {
         return new DataWrapper(num);
+    }
+
+    private DataWrapper fromByte(byte b) {
+        return new DataWrapper(b);
     }
 
     private void notEmpty(byte[]... bytes) {

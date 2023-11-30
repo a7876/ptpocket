@@ -18,36 +18,39 @@ public class Hash implements DataStructure {
      * 代理获取方法
      */
     public Object get(DataObject key) {
-        Object value = main.get(key);
+        if (currentBucket == -1) // 非rehash阶段
+            return main.get(key);
+        Object value = sub.get(key); // rehash中则先查子库
         if (value != null)
             return value;
-        if (currentBucket != -1 && (value = sub.get(key)) != null)
-            return value;
-        return null;
+        return main.get(key);
     }
 
     /**
      * 代理删除方法
      */
     public Object remove(DataObject key) {
-        Object removed = main.remove(key);
-        if (removed != null)
-            return removed;
-        if (currentBucket != -1 && (removed = sub.remove(key)) != null)
-            return removed;
+        Object returnValue = main.remove(key); // 不管如何都要从main中删
+        if (returnValue == null && currentBucket != -1) { // rehash阶段
+            returnValue = sub.remove(key); // 看看sub中有没有
+        }
         checkShrink();
-        return null;
+        return returnValue;
     }
 
     /**
      * 代理插入
+     * 这个插入实现保证同一时间Hash中不会有相同的key
      */
     public Object insert(DataObject key, Object value) {
         Object old;
         if (currentBucket == -1) { // 没有在rehash插入main
             old = main.insert(key, value);
-        } else {
-            old = sub.insert(key, value);
+        } else { // 在rehash阶段
+            old = main.remove(key); // 尝试删除main中的旧值
+            Object insert = sub.insert(key, value); // 插入新的表
+            if (insert != null)
+                old = insert;
         }
         checkExpand();
         return old;
@@ -104,24 +107,26 @@ public class Hash implements DataStructure {
      */
     private void advanceRehash() {
         int index = currentBucket;
-        int count = 0;
+        int count = 0; // 当前表rehash计数
         HashImpl.HashNode[] table = main.table;
         final int size = table.length;
+
         while (count < REHASH_BATCH) {
             HashImpl.HashNode node = table[index];
             while (node != null) {
-                sub.insert(node.key, node.value);
+                sub.insert(node.key, node.value); // 使用专门的插入方法
                 node = node.next;
                 count++;
             }
+            table[index] = null; // 将当前列置空
             index++;
             if (index == size) { // rehash完毕
                 rehashFinish();
-                break;
+                return; // 完毕直接返回
             }
         }
-        if (currentBucket != -1) // 没有rehash完毕
-            currentBucket = index; // 更新即将rehash到的桶
+        currentBucket = index; // 更新即将rehash到的桶
+        main.size -= count;
     }
 
     private void rehashFinish() {
@@ -135,11 +140,17 @@ public class Hash implements DataStructure {
         currentBucket = 0;
     }
 
+    /**
+     * 专门为定期rehash检查实现的方法
+     */
     public void cronCheckRehash() {
         if (currentBucket != -1)
             advanceRehash();
     }
 
+    /**
+     * 专门为检查过期键实现的方法
+     */
     public int checkExpire(int limit, Hash partnerHash) {
         if (currentBucket != -1) // rehash中不执行过期检查
             return 0;
@@ -171,7 +182,17 @@ public class Hash implements DataStructure {
         return count;
     }
 
-    private static class HashImpl {
+    public int getSize() {
+        int size = main.size;
+        if (currentBucket != -1)
+            size += sub.size;
+        return size;
+    }
+
+    /**
+     * 内部hash表实现
+     */
+    public static class HashImpl {
         static final int MAX_SIZE = 1 << 30;
         static final int INIT = 1 << 4; // default 16
         static final int BIG_INIT = 1 << 6;
@@ -212,6 +233,22 @@ public class Hash implements DataStructure {
             table[hash(key)] = newNode.setNext(table[hash(key)]); // 总是头插入
             size++;
             return null;
+        }
+
+        /**
+         * 专为rehash实现的插入方法，直接复用节点，减少开支
+         * 外层insert已经保证整个库中不会存在相同的key
+         */
+        void insert(HashNode oldNode) {
+            HashNode node = table[hash(oldNode.key)];
+            while (node != null) {
+                if (node.key.equals(oldNode.key)) {
+                    return;  // 已经出现了新的值，不再插入
+                }
+                node = node.next;
+            }
+            table[hash(oldNode.key)] = oldNode.setNext(table[hash(oldNode.key)]); // 总是头插入
+            size++;
         }
 
         /**
@@ -279,11 +316,11 @@ public class Hash implements DataStructure {
         //
         //  获取对象
         //
-        public static HashImpl getBigInit() { // 大初始值的Hash表
+        static HashImpl getBigInit() { // 大初始值的Hash表
             return new HashImpl(BIG_INIT);
         }
 
-        public static HashImpl getInstance() { // 默认始值的Hash表
+        static HashImpl getInstance() { // 默认始值的Hash表
             return new HashImpl(INIT);
         }
 

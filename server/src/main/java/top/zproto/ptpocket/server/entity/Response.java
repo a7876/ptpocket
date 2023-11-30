@@ -49,16 +49,18 @@ public class Response {
         return iNum;
     }
 
-    public void setiNum(int iNum) {
+    public Response setiNum(int iNum) {
         this.iNum = iNum;
+        return this;
     }
 
     public double getdNum() {
         return dNum;
     }
 
-    public void setdNum(double dNum) {
+    public Response setdNum(double dNum) {
         this.dNum = dNum;
+        return this;
     }
 
     public Client getClient() {
@@ -74,6 +76,7 @@ public class Response {
     }
 
     public void returnObject() {
+//        System.out.println("returning " + responseType.toString());
         pool.returnObject(this);
     }
 

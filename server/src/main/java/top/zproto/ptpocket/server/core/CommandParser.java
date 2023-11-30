@@ -14,7 +14,6 @@ import static top.zproto.ptpocket.server.core.ServerCommandType.*;
 public class CommandParser implements Protocol {
     public static final CommandParser instance = new CommandParser();
     private final CommandPool pool = CommandPool.instance;
-    private static final byte SUPPORTED_VERSION = 1;
 
     public Command parse(Client client, ByteBuf buf) {
         skipMagicNumber(buf);
@@ -60,6 +59,8 @@ public class CommandParser implements Protocol {
                 return persist(client, buf);
             case CommandType.STOP:
                 return stop(client, buf);
+            case CommandType.INFO:
+                return info(client, buf);
             default:
                 return unkonwnCommand(client);
         }
@@ -216,6 +217,13 @@ public class CommandParser implements Protocol {
         if (buf.readableBytes() != 0)
             return unkonwnCommand(client);
         return simpleCommand(client, STOP);
+    }
+
+    private Command info(Client client, ByteBuf buf) {
+        // 没有body
+        if (buf.readableBytes() != 0)
+            return unkonwnCommand(client);
+        return simpleCommand(client, INFO);
     }
 
     /**

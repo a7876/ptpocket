@@ -20,4 +20,10 @@ public class ResponseAcceptor extends ByteToMessageDecoder {
         ctx.channel().attr(Client.KEY).get().close(); // 关闭连接
         super.channelInactive(ctx);
     }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        cause.getCause().printStackTrace();
+        ctx.channel().close();
+    }
 }

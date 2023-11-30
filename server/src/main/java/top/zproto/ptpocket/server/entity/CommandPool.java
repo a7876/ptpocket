@@ -8,6 +8,8 @@ public class CommandPool implements ObjectPool<Command> {
     private final ConcurrentLinkedQueue<Command> pool = new ConcurrentLinkedQueue<>();
     private static final int MAX_SIZE = 100;
 
+    private int heapSize = 0; // 峰值大小
+
     @Override
     public Command getObject() {
         Command c = pool.poll();
@@ -21,6 +23,9 @@ public class CommandPool implements ObjectPool<Command> {
         if (pool.size() < MAX_SIZE) {
             command.clear();
             pool.add(command);
+            int size = pool.size();
+            if (size > heapSize)
+                heapSize = size;
         }
     }
 
@@ -28,5 +33,9 @@ public class CommandPool implements ObjectPool<Command> {
     public void tryShrink() {
         while (pool.size() > MAX_SIZE)
             pool.poll();
+    }
+
+    public int getHeapSize(){
+        return heapSize;
     }
 }

@@ -43,6 +43,8 @@ public class ResponseConverter implements ResponseType {
                 return unselect();
             case CONNECT_RESET:
                 return connectReset();
+            case STRING:
+                return str(buf);
         }
         throw new RuntimeException("unknown response type");
     }
@@ -89,6 +91,12 @@ public class ResponseConverter implements ResponseType {
 
     public Response dou(ByteBuf buf) {
         return new Response().setdNum(buf.readDouble());
+    }
+
+    public Response str(ByteBuf buf) {
+        byte[] bytes = new byte[buf.readableBytes()];
+        buf.readBytes(bytes);
+        return new Response().setString(new String(bytes));
     }
 
     public Response list(ByteBuf buf) {

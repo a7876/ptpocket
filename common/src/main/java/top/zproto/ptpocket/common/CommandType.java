@@ -98,6 +98,8 @@ public interface CommandType {
      */
     byte STOP = (byte) 255; // 停止redis
 
+    byte INFO = 100; // 获取数据库的信息
+
     // 保留指令
     byte RESERVED_0 = 100;
     byte RESERVED_1 = 101;

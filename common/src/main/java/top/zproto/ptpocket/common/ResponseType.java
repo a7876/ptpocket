@@ -15,8 +15,9 @@ public interface ResponseType {
      * body之后就是跟着一个个DataObject，都是先是DataObject的大小然后是DataObject
      */
     byte LIST = 8; // 响应一个列表
+    byte STRING = 9; // 响应一个列表
     byte UNKNOWN_COMMAND = 100; // 未知指令
     byte ILLEGAL_COMMAND = 101; // 不合法的指令
-    byte DB_UNSELECTED = 102;
+    byte DB_UNSELECTED = 102; // 未选择数据库
     byte CONNECT_RESET = (byte) 255; // 服务端断开连接
 }

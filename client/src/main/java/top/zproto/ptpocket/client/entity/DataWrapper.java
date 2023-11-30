@@ -18,6 +18,9 @@ public class DataWrapper {
     public DataWrapper(int iNum) {
         this.iNum = iNum;
     }
+    public DataWrapper(byte bNum) {
+        this.bNum = bNum;
+    }
 
     public byte[] getBytes() {
         return bytes;
