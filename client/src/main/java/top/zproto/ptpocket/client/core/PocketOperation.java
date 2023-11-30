@@ -5,12 +5,14 @@ import top.zproto.ptpocket.client.entity.DataWrapper;
 import top.zproto.ptpocket.client.entity.Request;
 import top.zproto.ptpocket.client.entity.Response;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 
 /**
  * 对应各种指令方法
  */
-public class PocketOperation {
+public class PocketOperation implements Closeable {
     private Client client;
 
     private PocketOperation() {
@@ -76,7 +78,7 @@ public class PocketOperation {
 
     public List<byte[]> zRangeScore(byte[] key, double start, double end) {
         notEmpty(key);
-        return commonPart(ClientRequestType.Z_RANGE_SCORE, fromDouble(start), fromDouble(end)).getDatas();
+        return commonPart(ClientRequestType.Z_RANGE_SCORE, fromByteArray(key), fromDouble(start), fromDouble(end)).getDatas();
     }
 
     public int zRank(byte[] key, byte[] value) {
@@ -120,7 +122,7 @@ public class PocketOperation {
         return commonPart(ClientRequestType.STOP).isbRes();
     }
 
-    public String info(){
+    public String info() {
         return commonPart(ClientRequestType.INFO).getString();
     }
 
@@ -160,5 +162,10 @@ public class PocketOperation {
             if (bs == null || bs.length == 0)
                 throw new IllegalArgumentException("[byte can't be null or empty");
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        client.close();
     }
 }

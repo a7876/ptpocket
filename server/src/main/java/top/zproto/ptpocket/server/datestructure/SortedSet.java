@@ -207,10 +207,10 @@ public class SortedSet {
                 while ((tmp = node.level[i].forward) != tail && (start > tmp.key)) // 不断前进
                     node = tmp;
             }
-            if (tmp == null)
+            if (tmp == null || tmp == tail)
                 return Collections.emptyList();
             ArrayList<DataObject> res = new ArrayList<>();
-            while (tmp != null && tmp.key <= end) {
+            while (tmp != tail && tmp.key <= end) {
                 res.add(tmp.val);
                 tmp = tmp.level[0].forward;
             }

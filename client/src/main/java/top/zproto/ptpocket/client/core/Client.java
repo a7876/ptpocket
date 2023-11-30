@@ -17,15 +17,16 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * client 主体
+ * client 主类
+ * thread unsafe
  */
 public class Client implements Closeable {
     private String ipAddr;
     private int port;
     private NioEventLoopGroup group;
-
     private static final int THREAD_LIMIT = 10;
     private ChannelFuture future;
     private Channel channel;
@@ -34,6 +35,8 @@ public class Client implements Closeable {
     public static final AttributeKey<Client> KEY = AttributeKey.newInstance("client");
 
     private boolean isClose = false;
+    private Client shareFrom = null;
+    private final AtomicInteger refCount = new AtomicInteger();
 
     private Client() {
     }
@@ -50,6 +53,7 @@ public class Client implements Closeable {
         client.port = port;
         client.group = new NioEventLoopGroup(Math.min(thread, THREAD_LIMIT));
         client.connect();
+        client.refCount.incrementAndGet();
         return client;
     }
 
@@ -65,6 +69,8 @@ public class Client implements Closeable {
         client.port = port;
         newClient.group = client.group;
         client.connect();
+        newClient.shareFrom = client;
+        client.refCount.incrementAndGet();
         return newClient;
     }
 
@@ -122,5 +128,13 @@ public class Client implements Closeable {
     public void close() throws IOException {
         isClose = true;
         channel.close();
+        if (shareFrom != null){
+            int i = shareFrom.refCount.decrementAndGet();
+            if (i == 0)
+                group.shutdownGracefully();
+        }
+        int i = this.refCount.decrementAndGet();
+        if (i == 0)
+            group.shutdownGracefully();
     }
 }

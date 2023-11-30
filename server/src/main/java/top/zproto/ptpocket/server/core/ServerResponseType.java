@@ -58,7 +58,7 @@ public enum ServerResponseType implements ResponseType, ResponseProcessor {
         @Override
         public void processResponse(Response response, ByteBuf buf) {
             commonPart(buf);
-            buf.writeInt(4); // 写body长度
+            buf.writeInt(8); // 写body长度
             buf.writeDouble(response.getdNum());
             response.returnObject();
         }

@@ -5,8 +5,8 @@ import top.zproto.ptpocket.client.utils.ObjectDecoder;
 import top.zproto.ptpocket.client.utils.ObjectEncoder;
 import top.zproto.ptpocket.client.utils.PocketTemplate;
 
-import java.util.ArrayList;
-import java.util.Random;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,37 +16,180 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Test {
 
     // 一秒钟内可以处理两万条命令
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Test test = new Test();
-        test.warmUp();
-        test.performanceTest();
+//        test.warmUp();
+//        test.performanceTest();
+//        test.hashTest();
+//        test.innerHashTest();
+        test.sortedSetTest();
     }
 
 
-    private void warmUp() {
-        Client client = Client.getInstance("localhost", 7878);
-        PocketTemplate<String> template =
-                new PocketTemplate<>(client, new StringEncoder(), new StringDecoder(), (byte) 0);
+    private void warmUp() throws IOException {
+        PocketTemplate<String> template = getTemplate();
         Random random = new Random();
         for (int i = 0; i < 100000; i++) {
             int key = random.nextInt(100000);
             template.set(" " + key, " " + key);
         }
         System.out.println("warm up done!");
+        template.close();
     }
 
-    private void performanceTest() {
+
+    private void hashTest() throws IOException {
+        PocketTemplate<String> template = getTemplate();
+        Random random = new Random();
+        Map<String, String> map = new HashMap<>();
+        for (int i = 0; i < 10000; i++) {
+            String s = "" + random.nextInt(100000);
+            map.put(s, s);
+            template.set(s, s);
+            if (random.nextBoolean()) {
+                map.remove(s);
+                template.del(s);
+            }
+        }
+        map.keySet().forEach(k -> {
+            String s = template.get(k);
+            if (!k.equals(s))
+                throw new IllegalStateException();
+        });
+        System.out.println("hashTestCompleted total size " + map.size());
+        template.close();
+    }
+
+    private void innerHashTest() throws IOException {
+        PocketTemplate<String> template = getTemplate();
+        Random random = new Random();
+        Map<String, String> map = new HashMap<>();
+        String key = "inner Test";
+        for (int i = 0; i < 10000; i++) {
+            String s = "" + random.nextInt(100000);
+            map.put(s, s);
+            template.hSet(key, s, s);
+            if (random.nextBoolean()) {
+                map.remove(s);
+                template.hDel(key, s);
+            }
+        }
+        map.keySet().forEach(k -> {
+            String s = template.hGet(key, k);
+            if (!k.equals(s))
+                throw new IllegalStateException();
+        });
+        template.del(key);
+        System.out.println("innerHashTestCompleted total size " + map.size());
+        template.close();
+    }
+
+    private void sortedSetTest() throws IOException {
+        PocketTemplate<String> template = getTemplate();
+        Random random = new Random();
+        Map<Integer, Integer> map = new HashMap<>();
+        String key = "sorted set Test";
+        template.del(key);
+        int min = 100000, max = -1;
+        for (int i = 0; i < 10000; i++) {
+            int num = random.nextInt(100000);
+            map.put(num, num);
+            String s = "" + num;
+            template.zAdd(key, num, s);
+            boolean isDeleted = false;
+            if (random.nextBoolean()) {
+                isDeleted = true;
+                map.remove(num);
+                template.zDel(key, s);
+            }
+            if (!isDeleted) {
+                min = Math.min(min, num);
+                max = Math.max(max, num);
+            }
+        }
+        map.keySet().forEach(k -> {
+            String value = "" + k;
+            Integer num = (int) template.zScore(key, value);
+            if (!k.equals(num))
+                throw new IllegalStateException();
+        });
+        ArrayList<Integer> nums = new ArrayList<>(map.values());
+
+        nums.sort(Comparator.comparingInt(i -> i));
+        // rangeByScore
+        List<String> byScore = template.zRangeScore(key, min, max);
+        for (int i = 0; i < nums.size(); i++) {
+            String value = "" + nums.get(i);
+            if (!value.equals(byScore.get(i))) {
+                throw new IllegalStateException();
+            }
+        }
+
+        // rank
+        for (int i = 0; i < nums.size(); i++) {
+            String value = "" + nums.get(i);
+            int rank = template.zRank(key, value);
+            if (rank != i + 1) {
+                System.out.println(rank);
+                throw new IllegalStateException();
+            }
+        }
+        // range
+        int rangeTO = random.nextInt(nums.size());
+        List<String> strings = template.zRange(key, 0, rangeTO);
+        for (int i = 0; i < rangeTO; i++) {
+            String value = "" + nums.get(i);
+            if (!value.equals(strings.get(i))) {
+                throw new IllegalStateException();
+            }
+        }
+
+        // reverseRank
+        nums.sort(Comparator.reverseOrder());
+        for (int i = 0; i < nums.size(); i++) {
+            String value = "" + nums.get(i);
+            int rank = template.zReverseRank(key, value);
+            if (rank != i + 1) {
+                System.out.println(rank);
+                throw new IllegalStateException();
+            }
+        }
+
+        //reverse range
+        rangeTO = random.nextInt(nums.size());
+        strings = template.zReverseRange(key, 0, rangeTO);
+        for (int i = 0; i < rangeTO; i++) {
+            String value = "" + nums.get(i);
+            if (!value.equals(strings.get(i))) {
+                throw new IllegalStateException();
+            }
+        }
+
+        template.del(key);
+        System.out.println("innerSortedSetTestCompleted total size " + map.size());
+        template.close();
+    }
+
+    private PocketTemplate<String> getTemplate() {
+        Client client = Client.getInstance("localhost", 7878);
+        return new PocketTemplate<>(client, new StringEncoder(), new StringDecoder(), (byte) 0);
+    }
+
+    private void performanceTest() throws IOException { // 性能测试
         AtomicLong l = new AtomicLong();
         Runnable r = () -> {
-            Client client = Client.getInstance("localhost", 7878);
-            PocketTemplate<String> template =
-                    new PocketTemplate<>(client, new StringEncoder(), new StringDecoder(), (byte) 0);
+            PocketTemplate<String> template = getTemplate();
             long time = System.currentTimeMillis();
             for (int i = 0; i < 10000; i++) {
                 template.set("name", "lili");
                 template.get("name");
             }
             l.addAndGet(System.currentTimeMillis() - time);
+            try {
+                template.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         };
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         ArrayList<Future<?>> futures = new ArrayList<>();
@@ -60,12 +203,11 @@ public class Test {
                 throw new RuntimeException(e);
             }
         });
-        Client client = Client.getInstance("localhost", 7878);
-        PocketTemplate<String> template =
-                new PocketTemplate<>(client, new StringEncoder(), new StringDecoder(), (byte) 0);
+        PocketTemplate<String> template = getTemplate();
         System.out.println(template.info());
         System.out.println("total " + l.get());
-        System.exit(0);
+        executorService.shutdown();
+        template.close();
     }
 
     private static class StringDecoder implements ObjectDecoder<String> {

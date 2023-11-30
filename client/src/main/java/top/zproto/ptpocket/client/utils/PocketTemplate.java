@@ -3,11 +3,13 @@ package top.zproto.ptpocket.client.utils;
 import top.zproto.ptpocket.client.core.Client;
 import top.zproto.ptpocket.client.core.PocketOperation;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class PocketTemplate<T> {
+public class PocketTemplate<T> implements Closeable {
     private final ObjectEncoder<T> objectEncoder;
     private final ObjectDecoder<T> objectDecoder;
     private final PocketOperation operation;
@@ -110,4 +112,8 @@ public class PocketTemplate<T> {
         return operation.stop();
     }
 
+    @Override
+    public void close() throws IOException {
+        operation.close();
+    }
 }
