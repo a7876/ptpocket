@@ -13,8 +13,7 @@ public class ServerConfiguration {
     int frequencyOfServerCron = 10; // 数据库定时任务频率，默认10hz
     String[] startArgs;
     boolean useAppendFile = true;
-    boolean strongPersistenceSecurityRequired = false; // appendFile失败且重试之后再次失败直接退出
-    long persistenceRetryInterval = 1000; // persistence失败之后的重试间隔,毫秒为单位
+    boolean strongPersistenceSecurityRequired = true; // 不允许在不开启持久化的情况下运行
     String appendFileDirectory = "." + File.separator;
     private static volatile ServerConfiguration instance = null;
 

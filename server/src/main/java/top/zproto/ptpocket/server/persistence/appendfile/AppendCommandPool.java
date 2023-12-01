@@ -1,6 +1,5 @@
 package top.zproto.ptpocket.server.persistence.appendfile;
 
-import top.zproto.ptpocket.server.entity.CommandPool;
 import top.zproto.ptpocket.server.entity.ObjectPool;
 
 import java.util.concurrent.ConcurrentLinkedQueue;

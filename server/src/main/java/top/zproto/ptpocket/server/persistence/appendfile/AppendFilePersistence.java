@@ -183,9 +183,12 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
                     if (current != null && !consumeSuccessfully) { // 没有消费成功需要放回
                         commands.offerFirst(current);
                     }
-                    if (panicOccurred && consumeSuccessfully) { // 重试之后又成功写入
-                        logger.warn("append file background task seems recovered");
-                        panicOccurred = false; // 消除异常状态
+                    if (panicOccurred) {
+                        inRetry = false; // 已经retry过了
+                        if (consumeSuccessfully) {
+                            logger.warn("append file background task seems recovered");
+                            panicOccurred = false; // 消除异常状态
+                        }
                     }
                 }
             } finally {
@@ -205,7 +208,10 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
     /**
      * 重试后台 append file task
      */
+    private volatile boolean inRetry = false;
+
     public void retryBackGroundTask() throws IOException {
+        inRetry = true;
         startBackGroundAppendFileTask();
     }
 
@@ -263,7 +269,7 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
     private volatile boolean panicOccurred = false;
 
     public boolean failedForPanic() {
-        return panicOccurred;
+        return !inRetry && panicOccurred; // 如果在retry中就返回false
     }
 
     public boolean isClose() {

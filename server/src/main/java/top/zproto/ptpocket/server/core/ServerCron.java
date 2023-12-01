@@ -8,6 +8,8 @@ import top.zproto.ptpocket.server.log.Logger;
 import top.zproto.ptpocket.server.persistence.appendfile.AppendCommand;
 import top.zproto.ptpocket.server.persistence.appendfile.AppendCommandPool;
 
+import java.io.IOException;
+
 public class ServerCron implements TimeEvent {
     private final ServerHolder server = ServerHolder.INSTANCE;
     private final Logger logger = Logger.DEFAULT;
@@ -29,7 +31,8 @@ public class ServerCron implements TimeEvent {
         checkExpireKey();
         checkObjectPool();
         calcEachSecondStatistic();
-        checkAppendFilePersistence();
+        checkAppendFileState();
+        checkAppendFileFsync();
     }
 
     // 上次检查到的数据库序号
@@ -110,12 +113,39 @@ public class ServerCron implements TimeEvent {
     private long lastTimeFsync;
     private static final long FSYNC_INTERVAL = 1000; // 一秒一次fsync
 
-    private void checkAppendFilePersistence() {
-        if (server.afp == null)
+    private void checkAppendFileFsync() {
+        if (server.afp == null || server.afp.failedForPanic()) // 失败中也不发送fsync以免过多堆积
             return;
         if (currentTime - lastTimeFsync >= FSYNC_INTERVAL) {
             server.afp.deliver(AppendCommand.FORCE_FLUSH);
             lastTimeFsync = currentTime; // 更新处理时间
+        }
+    }
+
+    private boolean noLongerCheck = false; // 不再检查标记
+    private int retryError = 0; // 重试中出错
+    private final static int RETRY_IN_RETRY_ERROR = 3; // 重试中触发异常的上限
+
+    private void checkAppendFileState() {
+        if (!noLongerCheck && server.afp != null && server.afp.failedForPanic()) { // 开启append file 且失败了
+            try {
+                server.afp.retryBackGroundTask();
+                retryError = 0; // 清零重试异常次数
+            } catch (IOException e) {
+                logger.warn("background append file task retry failed !");
+                logger.warn(e.toString());
+                retryError++;
+                if (retryError > RETRY_IN_RETRY_ERROR) { // 重试一直失败，无法继续
+                    logger.panic("restart background append file task error");
+                    if (configuration.strongPersistenceSecurityRequired) {
+                        logger.panic("strong persistence security is required, server exit");
+                        server.shutdown = true; // 无法恢复，停止服务
+                    } else {
+                        noLongerCheck = true; // 不再检查，停止持久化
+                        logger.warn("continue run server without append file support");
+                    }
+                }
+            }
         }
     }
 }
