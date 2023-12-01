@@ -20,11 +20,15 @@ public class Test {
         Test test = new Test();
         test.getServerInfo();
         test.warmUp();
+//        test.stopServer();
         test.performanceTest();
         test.hashTest();
         test.innerHashTest();
         test.sortedSetTest();
         test.otherCommand();
+        test.getServerInfo();
+//        test.persistenceInsert();
+//        test.persistenceTest();
     }
 
 
@@ -91,6 +95,12 @@ public class Test {
     private void getServerInfo() throws IOException {
         PocketTemplate<String> template = getTemplate();
         System.out.println(template.info());
+        template.close();
+    }
+
+    private void stopServer() throws IOException {
+        PocketTemplate<String> template = getTemplate();
+        template.stop();
         template.close();
     }
 
@@ -229,6 +239,57 @@ public class Test {
     private PocketTemplate<String> getTemplate() {
         Client client = Client.getInstance("localhost", 7878);
         return new PocketTemplate<>(client, new StringEncoder(), new StringDecoder(), (byte) 0);
+    }
+
+    private void persistenceInsert() throws IOException {
+        Random random = new Random(7878);
+        PocketTemplate<String> template = getTemplate();
+        String hKey = "inner hash";
+        String sKey = "inner sortedSet";
+        for (int i = 0; i < 10000; i++) {
+            String s = random.nextInt(1000) + "";
+            template.set(s, s);
+            template.hSet(hKey, s, s);
+            template.zAdd(sKey, i, s);
+        }
+        template.info();
+        try {
+            template.stop();
+        } finally {
+            template.close();
+        }
+    }
+
+    private void persistenceTest() throws IOException {
+        Random random = new Random(7878);
+        PocketTemplate<String> template = getTemplate();
+        String hKey = "inner hash";
+        String sKey = "inner sortedSet";
+        Map<String, Double> map = new HashMap<>();
+        for (int i = 0; i < 10000; i++) {
+            String s = random.nextInt(1000) + "";
+            String s1 = template.get(s);
+            if (!s.equals(s1)) {
+                throw new IllegalStateException();
+            }
+            s1 = template.hGet(hKey, s);
+            if (!s.equals(s1)) {
+                throw new IllegalStateException();
+            }
+            map.put(s, (double) i);
+        }
+        map.forEach((k, v) -> {
+            if (!v.equals(template.zScore(sKey, k))) {
+                throw new IllegalStateException();
+            }
+        });
+        template.info();
+        System.out.println("persistence test pass");
+        try {
+            template.stop();
+        } finally {
+            template.close();
+        }
     }
 
     private void performanceTest() throws IOException { // 性能测试

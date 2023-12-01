@@ -1,5 +1,7 @@
 package top.zproto.ptpocket.server.datestructure;
 
+import java.util.function.Consumer;
+
 public class Hash implements DataStructure {
     // 主库和副库，副库再rehash时和主库一起使用
     private HashImpl main, sub;
@@ -151,7 +153,7 @@ public class Hash implements DataStructure {
     /**
      * 专门为检查过期键实现的方法
      */
-    public int checkExpire(int limit, Hash partnerHash) {
+    public int checkExpire(int limit, Hash partnerHash, Consumer<DataObject> forExpiredKey) {
         if (currentBucket != -1) // rehash中不执行过期检查
             return 0;
         int count = 0;
@@ -163,6 +165,7 @@ public class Hash implements DataStructure {
                 continue;
             while (node != null && ((Long) node.value) <= current) { // 处理队头
                 partnerHash.remove(node.key); // 删除对应的键
+                forExpiredKey.accept(node.key); // 调用钩子
                 table[i] = node.next;
                 node = node.next;
                 count++;
@@ -172,6 +175,7 @@ public class Hash implements DataStructure {
             while (node.next != null) {
                 if (((Long) node.next.value) <= current) {
                     partnerHash.remove(node.next.key); // 删除对应的键
+                    forExpiredKey.accept(node.next.key); // 调用钩子
                     node.next = node.next.next; // 删除节点
                     count++;
                 } else {

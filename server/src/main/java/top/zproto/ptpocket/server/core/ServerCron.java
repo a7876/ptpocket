@@ -1,5 +1,7 @@
 package top.zproto.ptpocket.server.core;
 
+import top.zproto.ptpocket.server.datestructure.DataObject;
+import top.zproto.ptpocket.server.entity.Command;
 import top.zproto.ptpocket.server.entity.CommandPool;
 import top.zproto.ptpocket.server.entity.ResponsePool;
 import top.zproto.ptpocket.server.log.Logger;
@@ -53,6 +55,10 @@ public class ServerCron implements TimeEvent {
     private static final int ONCE_CHECK_EXPIRE = 100;
     private int lastCheckExpire = 0;
 
+    private final Client cronFakeClient = new Client(); // 假客户端，用于append file 生成命令
+    private final CommandPool commandPool = CommandPool.instance;
+    private final AppendCommandPool appendCommandPool = AppendCommandPool.instance;
+
     // 主动检查过期键
     private void checkExpireKey() {
         Database[] dbs = server.dbs;
@@ -61,7 +67,19 @@ public class ServerCron implements TimeEvent {
         int eachDb = ONCE_CHECK_EXPIRE / 5;
         while (count < ONCE_CHECK_EXPIRE && alreadyCheckDb < dbs.length) {
             lastCheckExpire %= dbs.length;
-            count += dbs[lastCheckExpire].expire.checkExpire(eachDb, dbs[lastCheckExpire].keyspace);
+            cronFakeClient.setUsedDb((byte) lastCheckExpire); // 设置当前数据库
+            count += dbs[lastCheckExpire].expire.checkExpire(eachDb, dbs[lastCheckExpire].keyspace,
+                    dataObject -> { // 设置钩子函数
+                        if (server.afp != null) {
+                            Command command = commandPool.getObject();
+                            command.setCommandType(ServerCommandType.DEL);
+                            command.setDataObjects(new DataObject[]{dataObject});
+                            command.setClient(cronFakeClient);
+                            AppendCommand ac = appendCommandPool.getObject();
+                            ac.setCommand(command);
+                            server.afp.deliver(ac);
+                        }
+                    });
             lastCheckExpire++;
             alreadyCheckDb++;
         }

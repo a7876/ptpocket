@@ -36,7 +36,7 @@ public class DataObject {
     public DataObject(ByteBuffer buf, int length) {
         data = new byte[length];
         used = length;
-        buf.put(data, 0, length);
+        buf.get(data, 0, length);
     }
 
     public DataObject(byte[] bytes, int offset, int length) {

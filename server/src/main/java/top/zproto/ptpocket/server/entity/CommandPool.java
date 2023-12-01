@@ -35,7 +35,15 @@ public class CommandPool implements ObjectPool<Command> {
             pool.poll();
     }
 
-    public int getPeakSize(){
+    public int getPeakSize() {
         return peakSize;
+    }
+
+    public Command copyFrom(Command command) {
+        Command nc = getObject();
+        nc.setClient(command.client);
+        nc.setCommandType(command.commandType);
+        nc.setDataObjects(command.dataObjects);
+        return nc;
     }
 }

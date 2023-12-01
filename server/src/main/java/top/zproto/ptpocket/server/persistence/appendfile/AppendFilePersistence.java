@@ -3,7 +3,6 @@ package top.zproto.ptpocket.server.persistence.appendfile;
 import sun.nio.ch.DirectBuffer;
 import top.zproto.ptpocket.common.Protocol;
 import top.zproto.ptpocket.server.core.ServerConfiguration;
-import top.zproto.ptpocket.server.datestructure.DataObject;
 import top.zproto.ptpocket.server.log.Logger;
 
 import java.io.Closeable;
@@ -168,6 +167,10 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
                         consumeSuccessfully = false;
                         current = commands.take();
                         consumeSuccessfully = consume(file, current);
+                        if (current != AppendCommand.FORCE_FLUSH) {
+                            current.command.returnObject(); // 内层command要归还
+                            current.returnObject(); // 外层appendCommand要归还
+                        }
                     } catch (IOException ex) {
                         logger.panic("background append file task failed!");
                         stop = true; // 退出线程

@@ -1,13 +1,13 @@
 package top.zproto.ptpocket.server.core;
 
 import top.zproto.ptpocket.common.CommandType;
-import top.zproto.ptpocket.server.datestructure.DataObject;
-import top.zproto.ptpocket.server.datestructure.Hash;
-import top.zproto.ptpocket.server.datestructure.SortedSet;
+import top.zproto.ptpocket.server.datestructure.*;
 import top.zproto.ptpocket.server.entity.Command;
 import top.zproto.ptpocket.server.entity.CommandPool;
 import top.zproto.ptpocket.server.entity.Response;
 import top.zproto.ptpocket.server.entity.ResponsePool;
+import top.zproto.ptpocket.server.persistence.appendfile.AppendCommand;
+import top.zproto.ptpocket.server.persistence.appendfile.AppendCommandPool;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +34,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             Object removed = db.keyspace.remove(key);
             if (removed != null)
                 db.expire.remove(key);
+            appendFile(command); // append file
             responseOK(client);
         }
     }, EXPIRE(CommandType.EXPIRE) {
@@ -45,7 +46,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                 return;
             DataObject[] dataObjects = command.getDataObjects();
             DataObject key = dataObjects[0];
-            Object value = getValue(database, key);
+            Object value = getValue(database, key, client);
             if (value == null) {
                 responseNull(client);
                 return;
@@ -57,6 +58,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             }
             long timeOut = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(time);
             database.expire.insert(key, timeOut);
+            appendFileForExpire(command, timeOut);
             responseOK(client);
         }
     }, EXPIRE_MILL(CommandType.EXPIRE_MILL) { // 设置过期，单位是毫秒
@@ -69,7 +71,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                 return;
             DataObject[] dataObjects = command.getDataObjects();
             DataObject key = dataObjects[0];
-            Object value = getValue(database, key);
+            Object value = getValue(database, key, client);
             if (value == null) {
                 responseNull(client);
                 return;
@@ -79,7 +81,9 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                 responseOK(client);
                 return;
             }
-            database.expire.insert(key, System.currentTimeMillis() + time);
+            long timeOut = System.currentTimeMillis() + time;
+            database.expire.insert(key, timeOut);
+            appendFileForExpire(command, timeOut);
             responseOK(client);
         }
     }, SELECT(CommandType.SELECT) { // 选择数据库
@@ -104,8 +108,9 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             if (database == null)
                 return;
             DataObject key = command.getDataObjects()[0];
-            getValue(database, key); // 先检查一下是否过期了
+            getValue(database, key, client); // 先检查一下是否过期了
             Object removed = database.expire.remove(key);
+            appendFile(command);
             if (removed == null)
                 responseNull(client);
             else
@@ -126,7 +131,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             if (database == null)
                 return;
             DataObject key = command.getDataObjects()[0];
-            Object value = getValue(database, key);
+            Object value = getValue(database, key, client);
             if (value == null) {
                 responseNull(client);
                 return;
@@ -150,6 +155,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             DataObject value = dataObjects[1];
             database.keyspace.insert(key, value);
             database.expire.remove(key); // 防止原来的键设置了过期
+            appendFile(command);
             responseOK(client);
         }
     }, H_SET(CommandType.H_SET) { // 设置hash表
@@ -162,7 +168,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                 return;
             DataObject[] dataObjects = command.getDataObjects();
             DataObject key = dataObjects[0];
-            Object value = getValue(database, key);
+            Object value = getValue(database, key, client);
             if (value != null && !(value instanceof Hash)) {
                 responseIllegal(client);
                 return;
@@ -176,6 +182,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                 database.keyspace.insert(key, hash);
                 hash.insert(innerKey, val);
             }
+            appendFile(command);
             responseOK(client);
         }
     }, H_GET(CommandType.H_GET) { // 获取内哈希的值
@@ -201,6 +208,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             DataObject[] dataObjects = command.getDataObjects();
             DataObject key = dataObjects[1];
             hash.remove(key);
+            appendFile(command);
             responseOK(client);
         }
     }, Z_ADD(CommandType.Z_ADD) { // 有序集增加
@@ -213,7 +221,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                 return;
             DataObject[] dataObjects = command.getDataObjects();
             DataObject key = dataObjects[0];
-            Object value = getValue(database, key);
+            Object value = getValue(database, key, client);
             if (value != null && !(value instanceof SortedSet)) {
                 responseIllegal(client);
                 return;
@@ -227,6 +235,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             } else {
                 ((SortedSet) value).insert(score, dataObject);
             }
+            appendFile(command);
             responseOK(client);
         }
     }, Z_DEL(CommandType.Z_DEL) { // 有序集删除
@@ -240,6 +249,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             DataObject[] dataObjects = command.getDataObjects();
             DataObject val = dataObjects[1];
             sortedSet.remove(val);
+            appendFile(command);
             responseOK(client);
         }
     }, Z_RANGE(CommandType.Z_RANGE) { // 有序集求范围
@@ -399,14 +409,15 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
     /**
      * 获取键空间的value，执行惰性删除
      */
-    protected Object getValue(Database database, DataObject dataObject) {
-        Long l = (Long) database.expire.get(dataObject);
+    protected Object getValue(Database database, DataObject key, Client client) {
+        Long l = (Long) database.expire.get(key);
         if (l != null && System.currentTimeMillis() - l >= 0) { // 已经过期
-            database.keyspace.remove(dataObject);
-            database.expire.remove(dataObject);
+            database.keyspace.remove(key);
+            database.expire.remove(key);
+            appendFileExpireToDel(key, client);
             return null;
         }
-        return database.keyspace.get(dataObject);
+        return database.keyspace.get(key);
     }
 
     protected void responseList(Client client, List<DataObject> list) {
@@ -432,7 +443,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             return null;
         DataObject[] dataObjects = command.getDataObjects();
         DataObject key = dataObjects[0];
-        Object value = getValue(database, key);
+        Object value = getValue(database, key, client);
         if (value != null && !(value instanceof SortedSet)) {
             responseIllegal(client);
             return null;
@@ -454,7 +465,7 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             return null;
         DataObject[] dataObjects = command.getDataObjects();
         DataObject key = dataObjects[0];
-        Object value = getValue(database, key);
+        Object value = getValue(database, key, client);
         if (value != null && !(value instanceof Hash)) {
             responseIllegal(client);
             return null;
@@ -466,8 +477,44 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
         return (Hash) value;
     }
 
+    protected void appendFile(Command command) {
+        if (server.afp != null) {
+            Command nc = commandPool.copyFrom(command);// 每次都需要自己手动获取一个新的command
+            AppendCommand ac = appendCommandPool.getObject();
+            ac.setCommand(nc);
+            server.afp.deliver(ac);
+        }
+    }
+
+    protected void appendFileForExpire(Command command, long expireTime) {
+        if (server.afp != null) {
+            Command nc = commandPool.copyFrom(command);
+            nc.setCommandType(EXPIRE_MILL);
+            LongDataObject ldo = new LongDataObject(expireTime);
+            DataObject[] dataObjects = nc.getDataObjects();
+            dataObjects[1] = ldo;
+            AppendCommand ac = appendCommandPool.getObject();
+            ac.setCommand(nc);
+            server.afp.deliver(ac);
+        }
+    }
+
+    protected void appendFileExpireToDel(DataObject key, Client client) {
+        if (server.afp != null) {
+            Command command = commandPool.getObject();
+            command.setDataObjects(new DataObject[]{key});
+            command.setClient(client); // 设置client的目的是为了获取当前的数据库号码
+            command.setCommandType(DEL);
+            AppendCommand ac = appendCommandPool.getObject();
+            ac.setCommand(command);
+            server.afp.deliver(ac);
+        }
+    }
+
     /**
      * 全局serverHolder对象
      */
     protected ServerHolder server = ServerHolder.INSTANCE;
+    protected final AppendCommandPool appendCommandPool = AppendCommandPool.instance;
+    protected final CommandPool commandPool = CommandPool.instance;
 }

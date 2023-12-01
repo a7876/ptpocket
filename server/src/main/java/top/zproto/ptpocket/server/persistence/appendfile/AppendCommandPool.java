@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * appendCommand对象池
  */
 public class AppendCommandPool implements ObjectPool<AppendCommand> {
-    public static final CommandPool instance = new CommandPool();
+    public static final AppendCommandPool instance = new AppendCommandPool();
     private final ConcurrentLinkedQueue<AppendCommand> pool = new ConcurrentLinkedQueue<>();
     private static final int MAX_SIZE = 100;
 

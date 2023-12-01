@@ -3,7 +3,6 @@ package top.zproto.ptpocket.server.persistence.appendfile;
 import top.zproto.ptpocket.common.CommandType;
 import top.zproto.ptpocket.server.core.Client;
 import top.zproto.ptpocket.server.core.ReloadCommandType;
-import top.zproto.ptpocket.server.core.ServerCommandType;
 import top.zproto.ptpocket.server.core.ServerHolder;
 import top.zproto.ptpocket.server.datestructure.DataObject;
 import top.zproto.ptpocket.server.datestructure.DoubleDataObject;
@@ -20,9 +19,7 @@ import java.nio.ByteBuffer;
  * 用于转化命令和将数据重装入库
  */
 public class AppendCommand implements AppendFileProtocol {
-    ServerCommandType type;
     Command command;
-    byte currentDb;
 
     /**
      * 特别对象用于指示后台线程刷新
@@ -35,7 +32,7 @@ public class AppendCommand implements AppendFileProtocol {
     public void toByteBuffer(ByteBuffer bytes) { // should ensure bytes is enough to load the data
         Client client = command.getClient();
         bytes.put((byte) client.getUsedDb()); // 写数据库编号
-        bytes.put(type.instruction); // 写命令类型
+        bytes.put(command.getCommandType().instruction); // 写命令类型
         int parts = getParts();
         bytes.put((byte) parts); // 写后面部分的数量
         DataObject[] dataObjects = command.getDataObjects();
@@ -109,7 +106,7 @@ public class AppendCommand implements AppendFileProtocol {
         neededSpace += parts * 4; // 需要parts个int
         DataObject[] dataObjects = command.getDataObjects();
         for (int i = 0; i < parts; i++) {
-            parts += dataObjects[i].getUsed();
+            neededSpace += dataObjects[i].getUsed();
         }
         return neededSpace;
     }
@@ -132,7 +129,7 @@ public class AppendCommand implements AppendFileProtocol {
 
     private int getParts() {
         int parts = 0;
-        switch (type.instruction) {
+        switch (command.getCommandType().instruction) {
             case CommandType.DEL:
             case CommandType.PERSIST:
                 parts = 1;
@@ -176,21 +173,16 @@ public class AppendCommand implements AppendFileProtocol {
         }
     }
 
-    public void setType(ServerCommandType type) {
-        this.type = type;
-    }
 
     public void setCommand(Command command) {
         this.command = command;
     }
 
-    public void setCurrentDb(byte currentDb) {
-        this.currentDb = currentDb;
-    }
-
     void clear() {
-        type = null;
         command = null;
-        currentDb = -1;
+    }
+    private static final AppendCommandPool pool = AppendCommandPool.instance;
+    void returnObject(){
+        pool.returnObject(this);
     }
 }
