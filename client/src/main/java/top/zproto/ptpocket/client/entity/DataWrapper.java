@@ -1,5 +1,8 @@
 package top.zproto.ptpocket.client.entity;
 
+/**
+ * 底层数据包装对象
+ */
 public class DataWrapper {
     byte[] bytes;
     double dNum;

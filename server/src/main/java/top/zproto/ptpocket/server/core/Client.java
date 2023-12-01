@@ -2,6 +2,9 @@ package top.zproto.ptpocket.server.core;
 
 import io.netty.channel.Channel;
 
+/**
+ * 代表一个数据库的客体，可以是网络连接客户，也会有伪客户端用于持久化
+ */
 public class Client {
     Channel channel;
     byte usedDb = -1;

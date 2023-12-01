@@ -6,6 +6,7 @@ import top.zproto.ptpocket.server.datestructure.DataObject;
 
 /**
  * 请求命令类
+ * 用于封装请求信息交与处理
  */
 public class Command {
     Client client;

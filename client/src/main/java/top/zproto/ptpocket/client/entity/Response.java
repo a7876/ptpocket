@@ -4,6 +4,9 @@ import io.netty.buffer.ByteBuf;
 
 import java.util.List;
 
+/**
+ * 响应数据包装对象
+ */
 public class Response {
     boolean bRes;
     byte[] data;

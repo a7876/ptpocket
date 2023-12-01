@@ -6,6 +6,9 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import top.zproto.ptpocket.client.exception.UnknownDataPacketReceivedException;
 import top.zproto.ptpocket.common.Protocol;
 
+/**
+ * 协议拆包器
+ */
 public class ProtocolSplitHandler extends LengthFieldBasedFrameDecoder {
     private static final int PREFIX_LENGTH = Protocol.MAGIC_NUM_LENGTH + Protocol.VERSION_LENGTH + Protocol.COMMAND_LENGTH;
 

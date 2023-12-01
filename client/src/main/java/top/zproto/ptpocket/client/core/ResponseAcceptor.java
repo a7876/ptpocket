@@ -6,6 +6,9 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 
 import java.util.List;
 
+/**
+ * 响应处理handler
+ */
 public class ResponseAcceptor extends ByteToMessageDecoder {
     static final ResponseAcceptor INSTANCE = new ResponseAcceptor();
     private static final ResponseConverter converter = ResponseConverter.INSTANCE;

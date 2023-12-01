@@ -2,6 +2,10 @@ package top.zproto.ptpocket.server.entity;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * Response对象池
+ * 复用对象减小开支
+ */
 public class ResponsePool implements ObjectPool<Response> {
     // 对象池，获取响应对象
     public static final ResponsePool instance = new ResponsePool();

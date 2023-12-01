@@ -38,7 +38,7 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
     }
 
     /**
-     * 开始装载
+     * 开始从磁盘转载数据
      */
     public void startReload(boolean startAppendFile) throws IOException {
         if (!Paths.get(directory).toFile().isDirectory()) {
@@ -59,6 +59,9 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
     private ByteBuffer readBuf;
     private FileChannel readingChannel;
 
+    /**
+     * 执行持久化数据读取
+     */
     private void doReload(FileChannel fileChannel) throws IOException {
         try {
             readingChannel = fileChannel;
@@ -146,6 +149,9 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         return true;
     }
 
+    /**
+     * 启动后台Append File
+     */
     private synchronized void startBackGroundAppendFileTask() throws IOException {
         if (backgroundTaskThread != null)
             throw new IllegalStateException("backgroundTask is running");
@@ -235,6 +241,9 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         return true; // always return true unless exception occurred
     }
 
+    /**
+     * 检查容量
+     */
     private void checkSize(int neededSize) {
         int current = writeBuf.capacity();
         while (current < neededSize) current <<= 2; // 两倍去扩增
@@ -270,10 +279,6 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
 
     public boolean failedForPanic() {
         return !inRetry && panicOccurred; // 如果在retry中就返回false
-    }
-
-    public boolean isClose() {
-        return stop;
     }
 
     private Thread backgroundTaskThread;

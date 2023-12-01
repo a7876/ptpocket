@@ -4,6 +4,9 @@ import io.netty.buffer.ByteBuf;
 import top.zproto.ptpocket.client.core.ClientRequestType;
 
 
+/**
+ * 请求数据包装对象
+ */
 public class Request {
     private DataWrapper[] datas;
     private ClientRequestType type;

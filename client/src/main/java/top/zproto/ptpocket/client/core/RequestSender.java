@@ -5,8 +5,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import top.zproto.ptpocket.client.entity.Request;
 
+/**
+ * 请求处理Handler
+ */
 public class RequestSender extends MessageToByteEncoder<Request> {
-    static final RequestSender INSTANCE = new RequestSender();
 
     @Override
     protected void encode(ChannelHandlerContext ctx, Request msg, ByteBuf out) throws Exception {

@@ -5,7 +5,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 有序列表实现，底层基于SkipList
+ * 有序集合实现，底层基于SkipList
+ * 支持O1查找对象score
+ * 支持Ologn删除、查找排名
  */
 public class SortedSet {
     private final Hash hash = new Hash(false);

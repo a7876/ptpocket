@@ -5,6 +5,9 @@ import top.zproto.ptpocket.server.persistence.appendfile.AppendFilePersistence;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * 服务器状态对象，记录所有运行时必要信息
+ */
 public class ServerHolder {
     // 服务器信息对象
 

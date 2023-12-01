@@ -12,6 +12,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 专门为AppendFileReload准备的命令执行类
+ * 这里只存在影响数据库状态的命令
+ * 同时过期命令的处理方法是特别的
  */
 public enum ReloadCommandType implements CommandType, CommandProcessor {
     DEL(CommandType.DEL) {

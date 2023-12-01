@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 一一对应的命令处理枚举类
+ * 所有命令的行为在此定义
  */
 public enum ServerCommandType implements CommandType, CommandProcessor {
     UNKNOWN_COMMAND(RESERVED_0) {

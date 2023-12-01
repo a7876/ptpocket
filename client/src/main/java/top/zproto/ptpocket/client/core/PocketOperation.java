@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * 对应各种指令方法
+ * 提供各种命令调用的低级实现
  */
 public class PocketOperation implements Closeable {
     private Client client;

@@ -11,6 +11,9 @@ import top.zproto.ptpocket.server.entity.Command;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * 请求到达的handler
+ */
 public class RequestHandler extends ByteToMessageDecoder {
     private final CommandParser parser = CommandParser.instance;
 

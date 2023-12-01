@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * client 主类
+ * 封装网络请求等信息
  * thread unsafe
  */
 public class Client implements Closeable {
@@ -30,6 +31,9 @@ public class Client implements Closeable {
     private static final int THREAD_LIMIT = 10;
     private ChannelFuture future;
     private Channel channel;
+    /**
+     * 阻塞队列用于阻塞客户等待服务器响应
+     */
     private final LinkedBlockingQueue<Response> queue = new LinkedBlockingQueue<>(); // 阻塞等待对方抵达
 
     public static final AttributeKey<Client> KEY = AttributeKey.newInstance("client");

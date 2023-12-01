@@ -1,5 +1,8 @@
 package top.zproto.ptpocket.server.log;
 
+/**
+ * 日志接口
+ */
 public interface Logger {
     Logger DEFAULT = new StandardIOLogger();
 

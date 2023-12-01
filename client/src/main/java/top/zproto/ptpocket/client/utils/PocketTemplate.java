@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * 命令操作高层实现，封装PocketOperation，根据对应的编码解码器直接使用对象进行命令操作
+ */
 public class PocketTemplate<T> implements Closeable {
     private final ObjectEncoder<T> objectEncoder;
     private final ObjectDecoder<T> objectDecoder;

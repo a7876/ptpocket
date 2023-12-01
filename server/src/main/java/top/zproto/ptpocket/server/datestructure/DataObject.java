@@ -7,7 +7,8 @@ import java.util.Random;
 
 /**
  * simply data holder
- * 简易数据
+ * 简易数据对象
+ * 是最基本的数据对象
  */
 public class DataObject {
     byte[] data;

@@ -6,6 +6,9 @@ import io.netty.handler.timeout.IdleStateHandler;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 连接超时handler
+ */
 public class TimeOutHandler extends IdleStateHandler {
     public TimeOutHandler(ServerConfiguration config) {
         super(config.timeOutLimit, 0, 0, TimeUnit.MINUTES);

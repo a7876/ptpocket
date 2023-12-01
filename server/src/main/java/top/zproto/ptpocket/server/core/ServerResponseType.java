@@ -7,7 +7,8 @@ import top.zproto.ptpocket.server.datestructure.DataObject;
 import top.zproto.ptpocket.server.entity.Response;
 
 /**
- * 各类响应处理枚举
+ * 响应处理枚举
+ * 所有响应行为全部定义在此
  */
 public enum ServerResponseType implements ResponseType, ResponseProcessor {
     DATA(ResponseType.DATA) {

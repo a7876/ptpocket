@@ -2,6 +2,10 @@ package top.zproto.ptpocket.server.datestructure;
 
 import java.util.function.Consumer;
 
+/**
+ * 哈希表实现
+ * 支持渐进rehash
+ */
 public class Hash implements DataStructure {
     // 主库和副库，副库再rehash时和主库一起使用
     private HashImpl main, sub;

@@ -10,6 +10,9 @@ import top.zproto.ptpocket.server.persistence.appendfile.AppendCommandPool;
 
 import java.io.IOException;
 
+/**
+ * 服务器定期事件类
+ */
 public class ServerCron implements TimeEvent {
     private final ServerHolder server = ServerHolder.INSTANCE;
     private final Logger logger = Logger.DEFAULT;

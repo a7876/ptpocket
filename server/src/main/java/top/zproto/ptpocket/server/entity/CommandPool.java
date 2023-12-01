@@ -2,6 +2,9 @@ package top.zproto.ptpocket.server.entity;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+/**
+ * Command对象池，复用对象减少开支
+ */
 public class CommandPool implements ObjectPool<Command> {
     // 对象池，获取命令对象
     public static final CommandPool instance = new CommandPool();

@@ -1,5 +1,8 @@
 package top.zproto.ptpocket.server.log;
 
+/**
+ * 简单的标准IO实现
+ */
 public class StandardIOLogger implements Logger {
     private static final String WARN_PREFIX = "warn: ";
     private static final String INFO_PREFIX = "info: ";

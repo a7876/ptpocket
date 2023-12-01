@@ -4,6 +4,9 @@ import io.netty.buffer.ByteBuf;
 
 import java.nio.ByteBuffer;
 
+/**
+ * 专门为long实现的DataObject子类
+ */
 public class LongDataObject extends DataObject {
     long num;
 

@@ -11,6 +11,10 @@ import top.zproto.ptpocket.server.entity.CommandPool;
 
 import static top.zproto.ptpocket.server.core.ServerCommandType.*;
 
+/**
+ * 命令解析器
+ * 用于构建正确的Command并传递给主线程处理
+ */
 public class CommandParser implements Protocol {
     public static final CommandParser instance = new CommandParser();
     private final CommandPool pool = CommandPool.instance;

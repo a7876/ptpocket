@@ -6,6 +6,10 @@ import top.zproto.ptpocket.client.entity.Request;
 import top.zproto.ptpocket.common.CommandType;
 import top.zproto.ptpocket.common.Protocol;
 
+/**
+ * 客户端命令构建枚举
+ * 定义每种命令的构建行为
+ */
 public enum ClientRequestType implements RequestConverter, CommandType, Protocol {
     SET(CommandType.SET) {
         @Override

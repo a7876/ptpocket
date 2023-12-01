@@ -4,6 +4,9 @@ import io.netty.buffer.ByteBuf;
 
 import java.nio.ByteBuffer;
 
+/**
+ * 专门针对double的DataObject子类
+ */
 public class DoubleDataObject extends DataObject {
     double num;
 

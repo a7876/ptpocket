@@ -2,6 +2,9 @@ package top.zproto.ptpocket.server.core;
 
 import java.io.File;
 
+/**
+ * 服务器启动配置类
+ */
 public class ServerConfiguration {
     static final String LOCAL_HOST = "localhost";
     String addr = LOCAL_HOST;

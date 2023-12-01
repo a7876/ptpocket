@@ -15,6 +15,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 服务器主类入口
+ * 整个服务器会一直在mainLoop主循环中执行，直到停止
+ */
 public class Main {
     public static final Main mainInstance = new Main();
 
@@ -129,12 +133,18 @@ public class Main {
         server.processTimeEvent();
     }
 
-    private void initDb(ServerConfiguration config) { // 初始化db
+    /**
+     * 初始化DB
+     */
+    private void initDb(ServerConfiguration config) {
         server = ServerHolder.INSTANCE;
         server.init(config);
     }
 
-    private void serverReady(ServerConfiguration config) { // 打印提示
+    /**
+     * 打印启动提示
+     */
+    private void serverReady(ServerConfiguration config) {
         String logo = "       _                    _        _   \n" +
                 " _ __ | |_ _ __   ___   ___| | _____| |_ \n" +
                 "| '_ \\| __| '_ \\ / _ \\ / __| |/ / _ \\ __|\n" +
@@ -147,7 +157,10 @@ public class Main {
         logger.info("server is ready to process command");
     }
 
-    private void beforeExit() { // 退出前处理
+    /**
+     * 服务器退出前的收尾工作
+     */
+    private void beforeExit() {
         bootstrap.config().group().shutdownGracefully();
         bootstrap.config().childGroup().shutdownGracefully();
         if (server.afp != null) {
@@ -159,10 +172,16 @@ public class Main {
         logger.info("server going to exit!");
     }
 
-    public static void submitCommand(Command c) { // 提交command
+    /**
+     * 向主线程提交Command
+     */
+    public static void submitCommand(Command c) {
         mainInstance.requests.add(c);
     }
 
+    /**
+     * 持久化文件载入
+     */
     private boolean checkReload(ServerConfiguration configuration) {
         if (configuration.strongPersistenceSecurityRequired && !configuration.useAppendFile) {
             logger.panic("strong persistence security is required but persistence is close");

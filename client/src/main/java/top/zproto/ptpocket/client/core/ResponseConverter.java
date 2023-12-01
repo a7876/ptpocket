@@ -10,6 +10,9 @@ import top.zproto.ptpocket.common.ResponseType;
 
 import java.util.ArrayList;
 
+/**
+ * 响应转换类，用于将网络协议数据转为对于的对象
+ */
 public class ResponseConverter implements ResponseType {
     public static final ResponseConverter INSTANCE = new ResponseConverter();
 

@@ -5,7 +5,10 @@ import top.zproto.ptpocket.server.core.Client;
 import top.zproto.ptpocket.server.core.ServerResponseType;
 import top.zproto.ptpocket.server.datestructure.DataObject;
 
-// 响应类
+/**
+ * 响应对象
+ * 封装响应的必要信息
+ */
 public class Response {
     private static final ResponsePool pool = ResponsePool.instance;
 

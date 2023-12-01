@@ -6,6 +6,9 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import top.zproto.ptpocket.server.entity.Response;
 
 
+/**
+ * 响应处理handler
+ */
 public class ResponseHandler extends MessageToByteEncoder<Response> {
 
     @Override
