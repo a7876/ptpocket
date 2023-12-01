@@ -45,11 +45,6 @@ public class DataObject {
         System.arraycopy(bytes, offset, data, 0, length);
     }
 
-    public void write(byte[] data, int offset, int length) {
-        System.arraycopy(data, offset, data, used, length);
-        used += length;
-    }
-
     public void write(byte data) {
         this.data[used++] = data;
     }

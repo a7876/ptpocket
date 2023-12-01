@@ -240,22 +240,6 @@ public class Hash implements DataStructure {
         }
 
         /**
-         * 专为rehash实现的插入方法，直接复用节点，减少开支
-         * 外层insert已经保证整个库中不会存在相同的key
-         */
-        void insert(HashNode oldNode) {
-            HashNode node = table[hash(oldNode.key)];
-            while (node != null) {
-                if (node.key.equals(oldNode.key)) {
-                    return;  // 已经出现了新的值，不再插入
-                }
-                node = node.next;
-            }
-            table[hash(oldNode.key)] = oldNode.setNext(table[hash(oldNode.key)]); // 总是头插入
-            size++;
-        }
-
-        /**
          * 删除元素
          */
         Object remove(DataObject key) {
