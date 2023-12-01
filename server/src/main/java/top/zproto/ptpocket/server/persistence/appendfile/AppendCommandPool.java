@@ -13,7 +13,7 @@ public class AppendCommandPool implements ObjectPool<AppendCommand> {
     private final ConcurrentLinkedQueue<AppendCommand> pool = new ConcurrentLinkedQueue<>();
     private static final int MAX_SIZE = 100;
 
-    private int heapSize = 0; // 峰值大小
+    private int peakSize = 0; // 峰值大小
 
 
     @Override
@@ -22,8 +22,8 @@ public class AppendCommandPool implements ObjectPool<AppendCommand> {
             pool.poll();
     }
 
-    public int getHeapSize() {
-        return heapSize;
+    public int getPeakSize() {
+        return peakSize;
     }
 
     @Override
@@ -40,8 +40,8 @@ public class AppendCommandPool implements ObjectPool<AppendCommand> {
             item.clear();
             pool.add(item);
             int size = pool.size();
-            if (size > heapSize)
-                heapSize = size;
+            if (size > peakSize)
+                peakSize = size;
         }
     }
 }

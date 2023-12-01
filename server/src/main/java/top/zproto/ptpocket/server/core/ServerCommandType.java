@@ -335,14 +335,14 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             long total = 0;
             for (Database db : dbs)
                 total += db.keyspace.getSize();
-            String str = String.format("highest process command each second is %d \n" +
-                            "command pool heap size is %d\n" +
-                            "response pool heap size is %d\n" +
+            String str = String.format("peak processed command each second is %d \n" +
+                            "command pool peak size is %d\n" +
+                            "response pool peak size is %d\n" +
                             "keySpace total size is %d\n" +
                             "ptpocket is been running for %ds"
-                    , server.commandProcessedEachSecondHeapValue
-                    , CommandPool.instance.getHeapSize()
-                    , ResponsePool.instance.getHeapSize()
+                    , server.commandProcessedEachSecondPeakValue
+                    , CommandPool.instance.getPeakSize()
+                    , ResponsePool.instance.getPeakSize()
                     , total
                     , (System.currentTimeMillis() - server.startTime) / 1000);
             responseString(command.getClient(), str);

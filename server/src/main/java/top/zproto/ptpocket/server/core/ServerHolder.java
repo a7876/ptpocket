@@ -17,7 +17,7 @@ public class ServerHolder {
     long totalCommandCount = 0; // 运行到如今执行过的指令数
 
     // 统计运行至今一秒最多可以执行多少条命令
-    int commandProcessedEachSecondHeapValue = 0;
+    int commandProcessedEachSecondPeakValue = 0;
 
     AppendFilePersistence afp; // 未启用Append File为null
 

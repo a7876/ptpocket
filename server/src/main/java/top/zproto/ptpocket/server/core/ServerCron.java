@@ -85,8 +85,8 @@ public class ServerCron implements TimeEvent {
         long lastCronTime = this.lastCronTime;
         this.lastCronTime = currentTime;
         int forEachSecond = diff * (int) (1000 / (currentTime - lastCronTime));
-        if (server.commandProcessedEachSecondHeapValue < forEachSecond)
-            server.commandProcessedEachSecondHeapValue = forEachSecond;
+        if (server.commandProcessedEachSecondPeakValue < forEachSecond)
+            server.commandProcessedEachSecondPeakValue = forEachSecond;
     }
 
     private long lastTimeFsync;
