@@ -14,7 +14,7 @@
 ```
 DEL key  删除全局哈希表的一个键值对
 
-EXPIRE、EXPIRE_MILL key 以秒、毫秒设计某个全局键的相对过期时间
+EXPIRE、EXPIRE_MILL key 以秒、毫秒设置某个全局键的相对过期时间
 
 SELECT num  选择一个数据库
 

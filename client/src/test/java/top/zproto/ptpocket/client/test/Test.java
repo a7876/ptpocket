@@ -14,8 +14,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Test {
-
-    // 一秒钟内可以处理两万条命令
     public static void main(String[] args) throws IOException, InterruptedException {
         Test test = new Test();
         test.getServerInfo();
@@ -292,7 +290,10 @@ public class Test {
         }
     }
 
-    private void performanceTest() throws IOException { // 性能测试
+    /**
+     * 性能测试
+     */
+    private void performanceTest() throws IOException {
         AtomicLong l = new AtomicLong();
         Runnable r = () -> {
             PocketTemplate<String> template = getTemplate();
