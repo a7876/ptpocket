@@ -2,6 +2,8 @@ package top.zproto.ptpocket.server.datestructure;
 
 import io.netty.buffer.ByteBuf;
 
+import java.nio.ByteBuffer;
+
 public class LongDataObject extends DataObject {
     long num;
 
@@ -21,18 +23,12 @@ public class LongDataObject extends DataObject {
     }
 
     @Override
-    public void copyTo(byte[] bytes, int index) {
-        for (int i = 0; i < 8; i++) {
-            bytes[index++] = (byte) (num >>> (i * 8) & 0xff);
-        }
+    public void copyTo(ByteBuffer buffer) {
+        buffer.putLong(num);
     }
 
-    public static DataObject getFromLong(byte[] bytes, int index) {
-        long res = 0;
-        for (int i = 0; i < 8; i++) {
-            res |= ((long) bytes[index++]) << i * 8;
-        }
-        return new LongDataObject(res);
+    public static DataObject getFromLong(ByteBuffer buffer) {
+        return new LongDataObject(buffer.getLong());
     }
 
     @Override

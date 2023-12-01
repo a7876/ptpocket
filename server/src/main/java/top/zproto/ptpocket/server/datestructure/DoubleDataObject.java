@@ -2,6 +2,8 @@ package top.zproto.ptpocket.server.datestructure;
 
 import io.netty.buffer.ByteBuf;
 
+import java.nio.ByteBuffer;
+
 public class DoubleDataObject extends DataObject {
     double num;
 
@@ -26,18 +28,11 @@ public class DoubleDataObject extends DataObject {
     }
 
     @Override
-    public void copyTo(byte[] bytes, int index) {
-        long l = Double.doubleToLongBits(num);
-        for (int i = 0; i < 8; i++) {
-            bytes[index++] = (byte) (l >>> (i * 8) & 0xff);
-        }
+    public void copyTo(ByteBuffer buffer) {
+        buffer.putDouble(num);
     }
 
-    public static DataObject getFromDouble(byte[] bytes, int index) {
-        long res = 0;
-        for (int i = 0; i < 8; i++) {
-            res |= ((long) bytes[index++]) << i * 8;
-        }
-        return new DoubleDataObject(Double.longBitsToDouble(res));
+    public static DataObject getFromDouble(ByteBuffer buffer) {
+        return new DoubleDataObject(buffer.getDouble());
     }
 }

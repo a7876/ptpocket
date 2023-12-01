@@ -1,9 +1,13 @@
 package top.zproto.ptpocket.server.persistence.appendfile;
 
+/**
+ * AppendFile协议
+ */
 public interface AppendFileProtocol {
     // append file 构成
 
     /*
+     *  开头固定两个协议magicNumber
      * ---------------------------------------------------------
      * | dbnum| command| size | body (every part with its size)|
      * ---------------------------------------------------------

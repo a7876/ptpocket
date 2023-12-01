@@ -2,6 +2,7 @@ package top.zproto.ptpocket.server.datestructure;
 
 import io.netty.buffer.ByteBuf;
 
+import java.nio.ByteBuffer;
 import java.util.Random;
 
 /**
@@ -32,6 +33,12 @@ public class DataObject {
         buf.readBytes(data, 0, length);
     }
 
+    public DataObject(ByteBuffer buf, int length) {
+        data = new byte[length];
+        used = length;
+        buf.put(data, 0, length);
+    }
+
     public DataObject(byte[] bytes, int offset, int length) {
         this.data = new byte[length];
         used = length;
@@ -53,8 +60,8 @@ public class DataObject {
         }
     }
 
-    public void copyTo(byte[] bytes, int index) {
-        System.arraycopy(data, 0, bytes, index, used);
+    public void copyTo(ByteBuffer buf) {
+        buf.put(data, 0, used);
     }
 
     public int getInt() { // testUse

@@ -18,11 +18,11 @@ public class Test {
     // 一秒钟内可以处理两万条命令
     public static void main(String[] args) throws IOException, InterruptedException {
         Test test = new Test();
-//        test.warmUp();
-//        test.performanceTest();
-//        test.hashTest();
-//        test.innerHashTest();
-//        test.sortedSetTest();
+        test.warmUp();
+        test.performanceTest();
+        test.hashTest();
+        test.innerHashTest();
+        test.sortedSetTest();
         test.otherCommand();
     }
 
@@ -81,7 +81,7 @@ public class Test {
             throw new IllegalStateException();
         template.del(key);
 
-        System.out.println(template.stop());
+//        System.out.println(template.stop());
 
         System.out.println("other command test finish");
         template.close();

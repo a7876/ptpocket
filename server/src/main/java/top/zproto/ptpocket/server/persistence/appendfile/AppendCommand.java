@@ -12,47 +12,53 @@ import top.zproto.ptpocket.server.datestructure.LongDataObject;
 import top.zproto.ptpocket.server.entity.Command;
 import top.zproto.ptpocket.server.entity.CommandPool;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
+/**
+ * Append File 中转数据类
+ * 用于转化命令和将数据重装入库
+ */
 public class AppendCommand implements AppendFileProtocol {
     ServerCommandType type;
     Command command;
     byte currentDb;
 
-    public AppendCommand(ServerCommandType type, Command command, byte currentDb) {
-        this.type = type;
-        this.command = command;
-        this.currentDb = currentDb;
-    }
+    /**
+     * 特别对象用于指示后台线程刷新
+     */
+    public static final AppendCommand FORCE_FLUSH = new AppendCommand();
 
     /**
      * 变为可以写入appendFile的数组
      */
-    public int toBytes(byte[] bytes) { // should ensure bytes is enough to load the data
+    public void toByteBuffer(ByteBuffer bytes) { // should ensure bytes is enough to load the data
         Client client = command.getClient();
-        int index = 0;
-        bytes[index++] = (byte) client.getUsedDb();
-        bytes[index++] = type.instruction;
+        bytes.put((byte) client.getUsedDb()); // 写数据库编号
+        bytes.put(type.instruction); // 写命令类型
         int parts = getParts();
-        bytes[index++] = (byte) parts;
+        bytes.put((byte) parts); // 写后面部分的数量
         DataObject[] dataObjects = command.getDataObjects();
         for (int i = 0; i < parts; i++) {
             DataObject dataObject = dataObjects[i];
-            index = writeInt(getEachPartSize(dataObject), bytes, index); // 写此部分的长度
-            dataObject.copyTo(bytes, index); // 写数据
-            index += dataObject.getUsed(); // 加上数据量
+            bytes.putInt(getEachPartSize(dataObject));
+            dataObject.copyTo(bytes); // 写数据
         }
-        return index;
     }
 
     /**
-     * 从数据重装入db
+     * 将一条条数据装载进入数据库
      */
-    public static void reload(byte[] bytes) {
-        int index = 0;
-        byte usedDB = bytes[index++];
-        if (usedDB < 0 || usedDB >= ServerHolder.INSTANCE.getDbNumbs()) // 目前没有这个库
+    public static void reload(AppendFilePersistence afp) throws IOException {
+        byte usedDB = afp.getByte();
+        if (usedDB < 0 || usedDB >= ServerHolder.INSTANCE.getDbNumbs()) { // 目前没有这个库
+            skipCommand(afp);
             return;
-        ReloadCommandType type = getReloadCommandtype(bytes[index++]);
-        int parts = bytes[index++];
+        }
+        ReloadCommandType type = getReloadCommandtype(afp.getByte());
+        int parts = afp.getByte();
+        if (parts < 0)
+            throw new IOException("illegal negative value occurred in append file");
         Command command = CommandPool.instance.getObject();
         Client fakeClient = Client.getFakeClient();
         fakeClient.setUsedDb(usedDB); // 设置数据库
@@ -60,28 +66,41 @@ public class AppendCommand implements AppendFileProtocol {
         DataObject[] dataObjects = new DataObject[parts];
         command.setDataObjects(dataObjects);
         for (int i = 0; i < parts; i++) { // 转载dataObject
-            int length = getInt(bytes, index);
-            index += 4;
+            int length = afp.getInt();
             int dataObjectType = length & TYPE_MASK; // 得到具体的类型
             length &= (~TYPE_MASK); // 还原得到真正的长度
             if (dataObjectType == INT_DATA_OBJECT) { // 判断是何种类型的dataObject
-                dataObjects[i] = IntDataObject.getFromInt(bytes, index);
+                dataObjects[i] = IntDataObject.getFromInt(afp.getReadBuffer());
             } else if (dataObjectType == DOUBLE_DATA_OBJECT) {
-                dataObjects[i] = DoubleDataObject.getFromDouble(bytes, index);
+                dataObjects[i] = DoubleDataObject.getFromDouble(afp.getReadBuffer());
             } else if (dataObjectType == NORMAL_DATA_OBJECT) {
-                dataObjects[i] = new DataObject(bytes, index, length);
+                dataObjects[i] = new DataObject(afp.getReadBuffer(), length);
             } else if (dataObjectType == LONG_DATA_OBJECT) {
-                dataObjects[i] = LongDataObject.getFromLong(bytes, index);
+                dataObjects[i] = LongDataObject.getFromLong(afp.getReadBuffer());
             } else {
                 throw new IllegalArgumentException("wrong type in reading data from append file");
             }
-            index += length; // 加上长度
         }
         type.processCommand(command);
         command.returnObject(); // 统一在此返回
     }
 
-    private int calcSpace() {
+    /**
+     * 数据库不存在的时候执行
+     */
+    private static void skipCommand(AppendFilePersistence afp) throws IOException {
+        afp.getByte(); // skip command
+        int parts = afp.getByte();
+        if (parts < 0)
+            throw new IOException("illegal negative value occurred in append file");
+        for (int i = 0; i < parts; i++) {
+            int size = afp.getInt();
+            size &= (~TYPE_MASK);
+            afp.dropBytes(size);
+        }
+    }
+
+    public int calcSpace() {
         int neededSpace = 0;
         neededSpace += 1; // dbnum
         neededSpace += 1; // command
@@ -104,6 +123,8 @@ public class AppendCommand implements AppendFileProtocol {
             return used | DOUBLE_DATA_OBJECT;
         } else if (dataObject instanceof IntDataObject) {
             return used | INT_DATA_OBJECT;
+        } else if (dataObject instanceof LongDataObject) {
+            return used | LONG_DATA_OBJECT;
         } else {
             return used | NORMAL_DATA_OBJECT;
         }
@@ -155,18 +176,21 @@ public class AppendCommand implements AppendFileProtocol {
         }
     }
 
-    public int writeInt(int num, byte[] bytes, int index) { // testUse
-        for (int i = 0; i < 4; i++) {
-            bytes[index++] = (byte) (num >>> (i * 8) & 0xff);
-        }
-        return index;
+    public void setType(ServerCommandType type) {
+        this.type = type;
     }
 
-    public static int getInt(byte[] bytes, int index) { // testUse
-        int res = 0;
-        for (int i = index; i < index + 4; i++) {
-            res |= bytes[i] << i * 8;
-        }
-        return res;
+    public void setCommand(Command command) {
+        this.command = command;
+    }
+
+    public void setCurrentDb(byte currentDb) {
+        this.currentDb = currentDb;
+    }
+
+    void clear() {
+        type = null;
+        command = null;
+        currentDb = -1;
     }
 }
