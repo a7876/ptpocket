@@ -3,6 +3,8 @@ package top.zproto.ptpocket.server.core;
 import top.zproto.ptpocket.server.entity.CommandPool;
 import top.zproto.ptpocket.server.entity.ResponsePool;
 import top.zproto.ptpocket.server.log.Logger;
+import top.zproto.ptpocket.server.persistence.appendfile.AppendCommand;
+import top.zproto.ptpocket.server.persistence.appendfile.AppendCommandPool;
 
 public class ServerCron implements TimeEvent {
     private final ServerHolder server = ServerHolder.INSTANCE;
@@ -10,7 +12,7 @@ public class ServerCron implements TimeEvent {
 
     private long lastTimeAlreadyProcess = 0;
     private long lastCronTime = System.currentTimeMillis();
-
+    private long currentTime; // 每次进入时间事件时的时间，减少对时间精确度要求不高的场景获取时间的开支
     private final ServerConfiguration configuration;
 
     ServerCron(ServerConfiguration configuration) {
@@ -19,11 +21,13 @@ public class ServerCron implements TimeEvent {
 
     @Override
     public void processTimeEvent() {
+        currentTime = System.currentTimeMillis();
         keySpaceRehashCheck(ONCE_CHECK);
         memoryWatch();
         checkExpireKey();
         checkObjectPool();
         calcEachSecondStatistic();
+        checkAppendFilePersistence();
     }
 
     // 上次检查到的数据库序号
@@ -69,16 +73,31 @@ public class ServerCron implements TimeEvent {
     private void checkObjectPool() {
         CommandPool.instance.tryShrink();
         ResponsePool.instance.tryShrink();
+        AppendCommandPool.instance.tryShrink();
     }
 
     private void calcEachSecondStatistic() {
+        // 更新命令处理数量
         long totalCommandCount = server.totalCommandCount;
         int diff = (int) (totalCommandCount - lastTimeAlreadyProcess);
         lastTimeAlreadyProcess = totalCommandCount;
+        // 更新时间
         long lastCronTime = this.lastCronTime;
-        this.lastCronTime = System.currentTimeMillis();
-        int forEachSecond = diff * (int) (1000 / (this.lastCronTime - lastCronTime));
+        this.lastCronTime = currentTime;
+        int forEachSecond = diff * (int) (1000 / (currentTime - lastCronTime));
         if (server.commandProcessedEachSecondHeapValue < forEachSecond)
             server.commandProcessedEachSecondHeapValue = forEachSecond;
+    }
+
+    private long lastTimeFsync;
+    private static final long FSYNC_INTERVAL = 1000; // 一秒一次fsync
+
+    private void checkAppendFilePersistence() {
+        if (server.afp == null)
+            return;
+        if (currentTime - lastTimeFsync >= FSYNC_INTERVAL) {
+            server.afp.deliver(AppendCommand.FORCE_FLUSH);
+            lastTimeFsync = currentTime; // 更新处理时间
+        }
     }
 }

@@ -1,5 +1,7 @@
 package top.zproto.ptpocket.server.core;
 
+import top.zproto.ptpocket.server.persistence.appendfile.AppendFilePersistence;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -16,6 +18,8 @@ public class ServerHolder {
 
     // 统计运行至今一秒最多可以执行多少条命令
     int commandProcessedEachSecondHeapValue = 0;
+
+    AppendFilePersistence afp; // 未启用Append File为null
 
     static class TimeEventHolder { // 时间事件类
         long triggerTime;

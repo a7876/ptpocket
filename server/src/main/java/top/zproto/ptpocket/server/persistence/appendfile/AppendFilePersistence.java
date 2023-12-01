@@ -42,12 +42,12 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
      * 开始装载
      */
     public void startReload(boolean startAppendFile) throws IOException {
-        if (Paths.get(directory).toFile().isDirectory()) {
+        if (!Paths.get(directory).toFile().isDirectory()) {
             throw new IOException("append file directory is not a directory");
         }
         Path path = Paths.get(directory + FILE_NAME);
         if (path.toFile().exists()) {
-            doReload(FileChannel.open(path));
+            doReload(FileChannel.open(path, StandardOpenOption.READ));
             logger.info("successfully reload all data from disk");
         } else {
             logger.warn("no append file found, ptpocket start with empty data");
@@ -64,6 +64,8 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         try {
             readingChannel = fileChannel;
             readBuf = ByteBuffer.allocate(DEFAULT_READ_BUFFER_SIZE);
+            fileChannel.read(readBuf);
+            readBuf.flip(); // 初次读取
             checkFileStart();
             while (hasNext()) { // 只要还有条目就执行
                 AppendCommand.reload(this);
@@ -80,10 +82,10 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
     private void checkFileStart() throws IOException {
         int first = getInt();
         if (first != Protocol.MAGIC_NUM)
-            throw new IOException("illegal file start");
+            throw new IOException("append file has illegal file start, check the file");
         first = getInt();
         if (first != Protocol.MAGIC_NUM)
-            throw new IOException("illegal file start");
+            throw new IOException("append file has illegal file start, check the file");
     }
 
     byte getByte() throws IOException {
@@ -130,7 +132,8 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
             throw new IOException("file end unexpected");
         }
     }
-    ByteBuffer getReadBuffer(){
+
+    ByteBuffer getReadBuffer() {
         return readBuf;
     }
 
@@ -151,8 +154,9 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         FileChannel file;
         if (path.toFile().exists()) { // 存在
             file = FileChannel.open(path, StandardOpenOption.APPEND);
-        } else {
-            file = FileChannel.open(path, StandardOpenOption.CREATE_NEW);
+        } else { // 不存在则新建
+            file = FileChannel.open(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            writeFileStart(file); // 写入文件头
         }
         Runnable runnable = () -> {
             AppendCommand current = null; // 保存当前的命令
@@ -192,6 +196,7 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         Thread thread = new Thread(runnable);
         backgroundTaskThread = thread;
         thread.start();
+        logger.info("background append file task started");
     }
 
     /**
@@ -240,6 +245,15 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         // 清理直接内存
         ((DirectBuffer) writeBuf).cleaner().clean();
         writeBuf = null;
+    }
+
+    private void writeFileStart(FileChannel fileChannel) throws IOException {
+        ByteBuffer temp = ByteBuffer.allocate(8);
+        temp.putInt(Protocol.MAGIC_NUM);
+        temp.putInt(Protocol.MAGIC_NUM);
+        temp.flip();
+        fileChannel.write(temp);
+        temp.clear();
     }
 
     private volatile boolean stop = false;

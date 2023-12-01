@@ -18,6 +18,7 @@ public class Test {
     // 一秒钟内可以处理两万条命令
     public static void main(String[] args) throws IOException, InterruptedException {
         Test test = new Test();
+        test.getServerInfo();
         test.warmUp();
         test.performanceTest();
         test.hashTest();
@@ -84,6 +85,12 @@ public class Test {
 //        System.out.println(template.stop());
 
         System.out.println("other command test finish");
+        template.close();
+    }
+
+    private void getServerInfo() throws IOException {
+        PocketTemplate<String> template = getTemplate();
+        System.out.println(template.info());
         template.close();
     }
 

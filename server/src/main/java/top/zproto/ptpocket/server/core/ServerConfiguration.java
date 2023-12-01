@@ -15,7 +15,7 @@ public class ServerConfiguration {
     boolean useAppendFile = true;
     boolean strongPersistenceSecurityRequired = false; // appendFile失败且重试之后再次失败直接退出
     long persistenceRetryInterval = 1000; // persistence失败之后的重试间隔,毫秒为单位
-    String appendFileDirectory = "." + File.pathSeparator;
+    String appendFileDirectory = "." + File.separator;
     private static volatile ServerConfiguration instance = null;
 
     static ServerConfiguration getConfig(String[] startArgs) {

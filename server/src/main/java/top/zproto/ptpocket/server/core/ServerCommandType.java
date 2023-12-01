@@ -338,11 +338,13 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
             String str = String.format("highest process command each second is %d \n" +
                             "command pool heap size is %d\n" +
                             "response pool heap size is %d\n" +
-                            "keySpace total size is %d\n"
+                            "keySpace total size is %d\n" +
+                            "ptpocket is been running for %ds"
                     , server.commandProcessedEachSecondHeapValue
                     , CommandPool.instance.getHeapSize()
                     , ResponsePool.instance.getHeapSize()
-                    , total);
+                    , total
+                    , (System.currentTimeMillis() - server.startTime) / 1000);
             responseString(command.getClient(), str);
         }
     };

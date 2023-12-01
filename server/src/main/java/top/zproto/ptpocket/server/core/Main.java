@@ -8,7 +8,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import top.zproto.ptpocket.server.entity.Command;
 import top.zproto.ptpocket.server.log.Logger;
+import top.zproto.ptpocket.server.persistence.appendfile.AppendFilePersistence;
 
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +32,9 @@ public class Main {
         ServerConfiguration config = ServerConfiguration.getConfig(args);
         mainInstance.initNet(config);
         mainInstance.initDb(config);
+        if (!mainInstance.checkReload(config)) {
+            return;
+        }
         mainInstance.commandBatch = 1000 / config.frequencyOfServerCron; // 按照一毫秒处理一个命令来算
         if (mainInstance.commandBatch < 10) // 最低是10
             mainInstance.commandBatch = 10;
@@ -60,7 +65,6 @@ public class Main {
             }
         } catch (Throwable ex) {
             logger.panic(ex.toString());
-            ex.printStackTrace();
             logger.panic("server exception occurred");
         } finally {
             beforeExit();
@@ -146,10 +150,31 @@ public class Main {
     private void beforeExit() { // 退出前处理
         bootstrap.config().group().shutdownGracefully();
         bootstrap.config().childGroup().shutdownGracefully();
+        if (server.afp != null) {
+            try {
+                server.afp.close(); // 触发后台Append File线程退出
+            } catch (IOException ignored) {
+            }
+        }
         logger.info("server going to exit!");
     }
 
     public static void submitCommand(Command c) { // 提交command
         mainInstance.requests.add(c);
+    }
+
+    private boolean checkReload(ServerConfiguration configuration) {
+        if (configuration.useAppendFile) {
+            server.afp = new AppendFilePersistence(configuration);
+            try {
+                server.afp.startReload(configuration.useAppendFile);
+            } catch (IOException e) {
+                logger.warn("some error occurred in reload data from disk");
+                logger.warn(e.getMessage());
+                beforeExit();
+                return false; // 停止
+            }
+        }
+        return true; // 继续
     }
 }
