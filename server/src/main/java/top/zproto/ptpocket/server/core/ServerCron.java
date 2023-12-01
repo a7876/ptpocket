@@ -30,7 +30,6 @@ public class ServerCron implements TimeEvent {
     public void processTimeEvent() {
         currentTime = System.currentTimeMillis();
         keySpaceRehashCheck(ONCE_CHECK);
-        memoryWatch();
         checkExpireKey();
         checkObjectPool();
         calcEachSecondStatistic();
@@ -53,11 +52,6 @@ public class ServerCron implements TimeEvent {
             lastTimeCheck++;
         }
     }
-
-    // 内存检查
-    private void memoryWatch() {
-    }
-
     private static final int ONCE_CHECK_EXPIRE = 100;
     private int lastCheckExpire = 0;
 

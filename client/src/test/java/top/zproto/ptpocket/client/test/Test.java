@@ -33,8 +33,21 @@ public class Test {
     private void warmUp() throws IOException {
         PocketTemplate<String> template = getTemplate();
         Random random = new Random();
-        for (int i = 0; i < 100000; i++) {
-            int key = random.nextInt(100000);
+        int times = 10_0000;
+        for (int i = 0; i < times; i++) {
+            int key = random.nextInt(times);
+            template.set(" " + key, " " + key);
+        }
+        System.out.println("warm up done!");
+        template.close();
+    }
+
+    private void bigWarnUp() throws IOException {
+        PocketTemplate<String> template = getTemplate();
+        Random random = new Random();
+        int millions = 500_0000;
+        for (int i = 0; i < millions; i++) {
+            int key = random.nextInt(millions);
             template.set(" " + key, " " + key);
         }
         System.out.println("warm up done!");

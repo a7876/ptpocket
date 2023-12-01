@@ -73,6 +73,7 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
                 AppendCommand.reload(this);
             }
         } catch (RuntimeException ex) {
+            logger.warn(ex.toString());
             throw new IOException("error occurred in reading append file");
         } finally {
             readingChannel = null;
@@ -135,8 +136,19 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         }
     }
 
-    ByteBuffer getReadBuffer() {
-        return readBuf;
+    ByteBuffer getReadBuffer(int requiredLength) throws IOException {
+        if (readBuf.remaining() >= requiredLength) {
+            return readBuf;
+        } else {
+            readBuf.compact();
+            readingChannel.read(readBuf);
+            readBuf.flip();
+        }
+        if (readBuf.remaining() >= requiredLength) {
+            return readBuf;
+        } else {
+            throw new IOException("file end unexpected");
+        }
     }
 
     boolean hasNext() throws IOException {

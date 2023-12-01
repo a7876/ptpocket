@@ -67,13 +67,13 @@ public class AppendCommand implements AppendFileProtocol {
             int dataObjectType = length & TYPE_MASK; // 得到具体的类型
             length &= (~TYPE_MASK); // 还原得到真正的长度
             if (dataObjectType == INT_DATA_OBJECT) { // 判断是何种类型的dataObject
-                dataObjects[i] = IntDataObject.getFromInt(afp.getReadBuffer());
+                dataObjects[i] = IntDataObject.getFromInt(afp.getReadBuffer(length));
             } else if (dataObjectType == DOUBLE_DATA_OBJECT) {
-                dataObjects[i] = DoubleDataObject.getFromDouble(afp.getReadBuffer());
+                dataObjects[i] = DoubleDataObject.getFromDouble(afp.getReadBuffer(length));
             } else if (dataObjectType == NORMAL_DATA_OBJECT) {
-                dataObjects[i] = new DataObject(afp.getReadBuffer(), length);
+                dataObjects[i] = new DataObject(afp.getReadBuffer(length), length);
             } else if (dataObjectType == LONG_DATA_OBJECT) {
-                dataObjects[i] = LongDataObject.getFromLong(afp.getReadBuffer());
+                dataObjects[i] = LongDataObject.getFromLong(afp.getReadBuffer(length));
             } else {
                 throw new IllegalArgumentException("wrong type in reading data from append file");
             }
@@ -181,8 +181,10 @@ public class AppendCommand implements AppendFileProtocol {
     void clear() {
         command = null;
     }
+
     private static final AppendCommandPool pool = AppendCommandPool.instance;
-    void returnObject(){
+
+    void returnObject() {
         pool.returnObject(this);
     }
 }
