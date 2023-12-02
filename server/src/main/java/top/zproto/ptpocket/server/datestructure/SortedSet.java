@@ -200,6 +200,8 @@ public class SortedSet {
 
         int getReverseRank(double score, DataObject dataObject) {
             int rank = getRank(score, dataObject);
+            if (rank == -1)
+                return -1;
             return size - rank + 1;
         }
 

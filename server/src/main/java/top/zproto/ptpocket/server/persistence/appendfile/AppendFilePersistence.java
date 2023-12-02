@@ -202,11 +202,11 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
                         commands.offerFirst(current);
                     }
                     if (panicOccurred) {
-                        inRetry = false; // 已经retry过了
                         if (consumeSuccessfully) {
                             logger.warn("append file background task seems recovered");
                             panicOccurred = false; // 消除异常状态
                         }
+                        inRetry = false; // 已经retry过了
                     }
                 }
             } finally {
