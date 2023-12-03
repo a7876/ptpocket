@@ -154,9 +154,9 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
     boolean hasNext() throws IOException {
         if (!readBuf.hasRemaining()) {
             readBuf.clear();
-            int write = readingChannel.read(readBuf);
+            int read = readingChannel.read(readBuf);
             readBuf.flip();
-            return write > 0;
+            return read > 0;
         }
         return true;
     }
@@ -240,6 +240,11 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         writeBuf = ByteBuffer.allocateDirect(DEFAULT_WRITE_BUFFER_SIZE); // directed
     }
 
+    /**
+     * consume the append file command
+     * 消费持久化命令
+     * 除非异常否则永远返回true
+     */
     private boolean consume(FileChannel fileChannel, AppendCommand command) throws IOException {
         if (command == AppendCommand.FORCE_FLUSH) {
             fileChannel.force(false); // 落盘刷新
@@ -249,19 +254,20 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         checkSize(command.calcSpace());
         command.toByteBuffer(writeBuf);
         writeBuf.flip(); // 切换至写模式
-        fileChannel.write(writeBuf); // blocking mode should not short write
+        fileChannel.write(writeBuf); // 阻塞模式不考虑短写问题  blocked mode should not short write
         return true; // always return true unless exception occurred
     }
 
     /**
      * 检查容量
+     * 不足则自动以两倍去扩容
      */
     private void checkSize(int neededSize) {
         int current = writeBuf.capacity();
-        while (current < neededSize) current <<= 2; // 两倍去扩增
+        while (current < neededSize) current <<= 1; // 两倍去扩增
         if (current != writeBuf.capacity()) { // 需要扩容
-            ((DirectBuffer) writeBuf).cleaner().clean(); // 清理
-            writeBuf = ByteBuffer.allocateDirect(current); // 重新申请
+            ((DirectBuffer) writeBuf).cleaner().clean();
+            writeBuf = ByteBuffer.allocateDirect(current);
         }
     }
 
