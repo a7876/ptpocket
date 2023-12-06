@@ -11,6 +11,7 @@
 ### 命令类型
 
 **通用命令**
+
 ```
 DEL key  删除全局哈希表的一个键值对
 
@@ -24,13 +25,17 @@ STOP 停止服务器
 
 INFO 获取一些服务器的信息
 ```
+
 **全局哈希命令**
+
 ```
 GET key 获取某个key对应的值
 
 SET key value 设置键值对
 ```
+
 **内嵌哈希命令**
+
 ```
 HSET key innerKey value 向某个内嵌哈希表中插入一对键值对
 
@@ -38,7 +43,9 @@ HGET key innerKey 从某个内嵌哈希表中获取一个值
 
 HDEL key innerKey 从某个内嵌哈希表中删除一个键值对
 ```
+
 **有序集合命令（默认内部以score升序排序）**
+
 ```
 ZADD key score value 向某个有序集合中添加一个对象及其的double类型分值
 
@@ -61,20 +68,35 @@ ZSCORE key value 从有序集合中返回对应值的score
 
 项目分为三个module，server为服务器，common为公用协议数据，client为服务端
 
+**Server**
+
 server module的core包下Main即服务器主入口，启动主方法即可启动服务器
 
+其中默认配置文件是在server resource目录下的 `ptpocket.properties`
+
+启动时可以在**第一个**启动参数指定配置文件
+
+```shell
+java ... xxx.properties
+```
+
+**Client**
+
 client module的util包下有PocketTemplate作为命令接口实现
+
 ```java
-class Example{
-    void example(){
+class Example {
+    void example() {
         Client c = new Client(ip, port);
         PocketTemplate pt = new PocketTemplate(c, ObjectEncode, ObjectDecode, defaultDb);
-    }   
+    }
 }
 ```
+
 具体见client module下的test文件夹中的相关测试类
 
 ### 模块构成
+
 ```
 |—— server
 |   |——core
