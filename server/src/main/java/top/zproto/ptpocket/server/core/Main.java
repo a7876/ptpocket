@@ -44,6 +44,7 @@ public class Main {
             mainInstance.commandBatch = 10;
         mainInstance.commands = new Command[mainInstance.commandBatch];
         mainInstance.serverReady(config);
+        mainInstance.beforeMainLoop();
         mainInstance.mainLoop();
     }
 
@@ -139,6 +140,16 @@ public class Main {
     private void initDb(ServerConfiguration config) {
         server = ServerHolder.INSTANCE;
         server.init(config);
+    }
+
+    private void beforeMainLoop() {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                if (server.afp != null)
+                    server.afp.close(); // try to make sure the append file safe
+            } catch (IOException ignored) {
+            }
+        }));
     }
 
     /**
