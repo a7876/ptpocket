@@ -9,7 +9,7 @@ public class Client {
     Channel channel;
     byte usedDb = -1;
 
-    public int getUsedDb() {
+    public byte getUsedDb() {
         return usedDb;
     }
 

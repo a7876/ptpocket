@@ -16,17 +16,17 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Test {
     public static void main(String[] args) throws IOException, InterruptedException {
         Test test = new Test();
-        test.getServerInfo();
-        test.warmUp();
-//        test.stopServer();
-        test.performanceTest();
-        test.hashTest();
-        test.innerHashTest();
-        test.sortedSetTest();
-        test.otherCommand();
-        test.getServerInfo();
+//        test.getServerInfo();
+//        test.warmUp();
+////        test.stopServer();
+//        test.performanceTest();
+//        test.hashTest();
+//        test.innerHashTest();
+//        test.sortedSetTest();
+//        test.otherCommand();
+//        test.getServerInfo();
 //        test.persistenceInsert();
-//        test.persistenceTest();
+        test.persistenceTest();
     }
 
 
@@ -257,13 +257,16 @@ public class Test {
         PocketTemplate<String> template = getTemplate();
         String hKey = "inner hash";
         String sKey = "inner sortedSet";
-        for (int i = 0; i < 10000; i++) {
-            String s = random.nextInt(1000) + "";
-            template.set(s, s);
-            template.hSet(hKey, s, s);
-            template.zAdd(sKey, i, s);
+        for (int t = 0; t < 3; t++) {
+            template.select((byte) t); // 选择多个库
+            for (int i = 0; i < 10000; i++) {
+                String s = random.nextInt(1000) + "";
+                template.set(s, s);
+                template.hSet(hKey, s, s);
+                template.zAdd(sKey, i, s);
+            }
         }
-        template.info();
+        System.out.println(template.info());
         try {
             template.stop();
         } finally {
@@ -276,25 +279,28 @@ public class Test {
         PocketTemplate<String> template = getTemplate();
         String hKey = "inner hash";
         String sKey = "inner sortedSet";
-        Map<String, Double> map = new HashMap<>();
-        for (int i = 0; i < 10000; i++) {
-            String s = random.nextInt(1000) + "";
-            String s1 = template.get(s);
-            if (!s.equals(s1)) {
-                throw new IllegalStateException();
+        for (int t = 0; t < 3; t++) {
+            template.select((byte) t);
+            Map<String, Double> map = new HashMap<>();
+            for (int i = 0; i < 10000; i++) {
+                String s = random.nextInt(1000) + "";
+                String s1 = template.get(s);
+                if (!s.equals(s1)) {
+                    throw new IllegalStateException();
+                }
+                s1 = template.hGet(hKey, s);
+                if (!s.equals(s1)) {
+                    throw new IllegalStateException();
+                }
+                map.put(s, (double) i);
             }
-            s1 = template.hGet(hKey, s);
-            if (!s.equals(s1)) {
-                throw new IllegalStateException();
-            }
-            map.put(s, (double) i);
+            map.forEach((k, v) -> {
+                if (!v.equals(template.zScore(sKey, k))) {
+                    throw new IllegalStateException();
+                }
+            });
         }
-        map.forEach((k, v) -> {
-            if (!v.equals(template.zScore(sKey, k))) {
-                throw new IllegalStateException();
-            }
-        });
-        template.info();
+        System.out.println(template.info());
         System.out.println("persistence test pass");
         try {
             template.stop();

@@ -21,6 +21,8 @@ import java.nio.ByteBuffer;
 public class AppendCommand implements AppendFileProtocol {
     Command command;
 
+    byte dbNum; // 记录数据库编号，不能直接依据client
+
     /**
      * 特别对象用于指示后台线程刷新
      */
@@ -30,8 +32,7 @@ public class AppendCommand implements AppendFileProtocol {
      * 变为可以写入appendFile的数组
      */
     public void toByteBuffer(ByteBuffer bytes) { // should ensure bytes is enough to load the data
-        Client client = command.getClient();
-        bytes.put((byte) client.getUsedDb()); // 写数据库编号
+        bytes.put(dbNum); // 写数据库编号
         bytes.put(command.getCommandType().instruction); // 写命令类型
         int parts = getParts();
         bytes.put((byte) parts); // 写后面部分的数量
@@ -176,6 +177,7 @@ public class AppendCommand implements AppendFileProtocol {
 
     public void setCommand(Command command) {
         this.command = command;
+        this.dbNum = command.getClient().getUsedDb(); // 设置数据库编号
     }
 
     void clear() {
