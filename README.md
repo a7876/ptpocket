@@ -24,6 +24,8 @@ PERSIST key 取消一个全局键的过期时间
 STOP 停止服务器
 
 INFO 获取一些服务器的信息
+
+REWRITE 阻塞重写Append File文件
 ```
 
 **全局哈希命令**
