@@ -65,6 +65,8 @@ public class CommandParser implements Protocol {
                 return stop(client, buf);
             case CommandType.INFO:
                 return info(client, buf);
+            case CommandType.REWRITE:
+                return rewrite(client, buf);
             default:
                 return unkonwnCommand(client);
         }
@@ -228,6 +230,13 @@ public class CommandParser implements Protocol {
         if (buf.readableBytes() != 0)
             return unkonwnCommand(client);
         return simpleCommand(client, INFO);
+    }
+
+    private Command rewrite(Client client, ByteBuf buf) {
+        // 没有body
+        if (buf.readableBytes() != 0)
+            return unkonwnCommand(client);
+        return simpleCommand(client, REWRITE);
     }
 
     /**

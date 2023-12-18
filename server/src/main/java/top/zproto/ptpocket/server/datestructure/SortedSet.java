@@ -3,6 +3,7 @@ package top.zproto.ptpocket.server.datestructure;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 /**
  * 有序集合实现，底层基于SkipList
@@ -63,6 +64,15 @@ public class SortedSet {
 
     public int getSize() {
         return skipList.size;
+    }
+
+    /**
+     * 遍历实现，只用遍历hash
+     */
+
+    public void iterate(BiConsumer<DataObject, Object> consumer) {
+        // 这里的Object永远是Double
+        hash.iterate(consumer);
     }
 
     private static class SkipList {

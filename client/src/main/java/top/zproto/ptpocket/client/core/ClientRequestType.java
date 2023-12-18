@@ -163,6 +163,12 @@ public enum ClientRequestType implements RequestConverter, CommandType, Protocol
             commonPart(buf);
             buf.writeInt(0); // no Body
         }
+    }, REWRITE(CommandType.REWRITE){
+        @Override
+        public void convert(Request request, ByteBuf buf) {
+            commonPart(buf);
+            buf.writeInt(0);
+        }
     };
     final byte instruction;
 

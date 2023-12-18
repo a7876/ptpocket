@@ -1,5 +1,6 @@
 package top.zproto.ptpocket.server.datestructure;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -198,6 +199,16 @@ public class Hash implements DataStructure {
     }
 
     /**
+     * 外层遍历
+     */
+    public void iterate(BiConsumer<DataObject, Object> consumer) {
+        main.iterate(consumer);
+        if (sub != null)
+            sub.iterate(consumer);
+    }
+
+
+    /**
      * 内部hash表实现
      */
     public static class HashImpl {
@@ -318,6 +329,19 @@ public class Hash implements DataStructure {
 
         private HashImpl(int capacity) {
             table = new HashNode[capacity];
+        }
+
+        /***
+         * 内层遍历
+         */
+        void iterate(BiConsumer<DataObject, Object> consumer) {
+            final HashNode[] t = table;
+            for (HashNode node : t) {
+                while (node != null) {
+                    consumer.accept(node.key, node.value);
+                    node = node.next;
+                }
+            }
         }
     }
 }

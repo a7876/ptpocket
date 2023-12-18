@@ -1,6 +1,7 @@
 package top.zproto.ptpocket.client.test;
 
 import top.zproto.ptpocket.client.core.Client;
+import top.zproto.ptpocket.client.exception.ConnectionResetException;
 import top.zproto.ptpocket.client.utils.ObjectDecoder;
 import top.zproto.ptpocket.client.utils.ObjectEncoder;
 import top.zproto.ptpocket.client.utils.PocketTemplate;
@@ -16,9 +17,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Test {
     public static void main(String[] args) throws IOException, InterruptedException {
         Test test = new Test();
-//        test.getServerInfo();
 //        test.warmUp();
-////        test.stopServer();
+//        test.getServerInfo();
 //        test.performanceTest();
 //        test.hashTest();
 //        test.innerHashTest();
@@ -26,7 +26,9 @@ public class Test {
 //        test.otherCommand();
 //        test.getServerInfo();
 //        test.persistenceInsert();
+//        test.blockingRewrite();
         test.persistenceTest();
+        test.stopServer();
     }
 
 
@@ -111,8 +113,12 @@ public class Test {
 
     private void stopServer() throws IOException {
         PocketTemplate<String> template = getTemplate();
-        template.stop();
-        template.close();
+        try {
+            template.stop();
+        }catch (ConnectionResetException ignored){
+        }finally {
+            template.close();
+        }
     }
 
     private void hashTest() throws IOException {
@@ -267,11 +273,11 @@ public class Test {
             }
         }
         System.out.println(template.info());
-        try {
-            template.stop();
-        } finally {
-            template.close();
-        }
+//        try {
+//            template.stop();
+//        } finally {
+//            template.close();
+//        }
     }
 
     private void persistenceTest() throws IOException {
@@ -344,6 +350,16 @@ public class Test {
         System.out.println(template.info());
         System.out.println("total " + l.get());
         executorService.shutdown();
+        template.close();
+    }
+
+    private void blockingRewrite() throws IOException {
+        PocketTemplate<String> template = getTemplate();
+        try {
+            System.out.println("rewrite : " + template.rewrite());
+        } catch (Throwable r) {
+            System.out.println(r.getMessage());
+        }
         template.close();
     }
 

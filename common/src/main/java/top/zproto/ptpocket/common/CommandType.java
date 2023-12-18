@@ -100,6 +100,8 @@ public interface CommandType {
 
     byte INFO = 100; // 获取数据库的信息
 
+    byte REWRITE = 101; // 阻塞从写AppendFile
+
     // 保留指令
     byte RESERVED_0 = 100;
     byte RESERVED_1 = 101;

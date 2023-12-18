@@ -358,6 +358,20 @@ public enum ServerCommandType implements CommandType, CommandProcessor {
                     , (System.currentTimeMillis() - server.startTime) / 1000);
             responseString(command.getClient(), str);
         }
+    }, REWRITE(CommandType.REWRITE) {
+        @Override
+        public void processCommand(Command command) {
+            if (server.afp == null)
+                responseString(command.getClient(), "append file disabled");
+            if (server.afp.isRewriting())
+                responseString(command.getClient(), "server is rewriting, try later");
+            boolean res = server.afp.rewriteAppendFile(server, false);
+            if (res){
+                responseOK(command.getClient());
+            }else {
+                responseString(command.getClient(), "can't start rewrite");
+            }
+        }
     };
     public final byte instruction;
 

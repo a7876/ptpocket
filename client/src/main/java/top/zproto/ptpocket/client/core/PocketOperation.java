@@ -128,6 +128,14 @@ public class PocketOperation implements Closeable {
         return commonPart(ClientRequestType.INFO).getString();
     }
 
+    public boolean rewrite() {
+        Response response = commonPart(ClientRequestType.REWRITE);
+        boolean b = response.isbRes();
+        if (b)
+            return true;
+        throw new RuntimeException(response.getString());
+    }
+
     private Channel getChannel() {
         return client.getChannel();
     }

@@ -92,6 +92,10 @@ public class PocketTemplate<T> implements Closeable {
         return operation.info();
     }
 
+    public boolean rewrite(){
+        return operation.rewrite();
+    }
+
     public boolean select(byte dbNum) {
         return operation.select(dbNum);
     }

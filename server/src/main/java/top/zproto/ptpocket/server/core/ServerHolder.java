@@ -44,7 +44,7 @@ public class ServerHolder {
     public void init(ServerConfiguration config) {
         dbs = new Database[config.dbNums];
         for (int i = 0; i < config.dbNums; i++) {
-            dbs[i] = new Database(i);
+            dbs[i] = new Database((byte) i);
         }
         startTime = System.currentTimeMillis();
         clients = new HashSet<>();
@@ -110,5 +110,9 @@ public class ServerHolder {
 
     public int getDbNumbs() {
         return dbs.length;
+    }
+
+    public Database[] getDbs() {
+        return dbs;
     }
 }
