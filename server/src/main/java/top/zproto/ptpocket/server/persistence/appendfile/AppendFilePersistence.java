@@ -422,6 +422,7 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         try (FileChannel tmpFile = FileChannel.open(Paths.get(directory + tmpFileName),
                 StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             logger.info("starting rewrite!");
+            long startTime = System.currentTimeMillis();
             LinkedBlockingQueue<AppendCommand> queue = new LinkedBlockingQueue<>();
             stateOfRewrite = REWRITING; // 标记开始
             Runnable r = () -> { // 专门的后台写线程
@@ -453,7 +454,7 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
             while (stateOfRewrite < REWRITE_FINISH) Thread.yield(); // 阻塞等待结果
             if (stateOfRewrite == REWRITE_FINISH) {
                 tmpFile.close();
-                afterBlockingRewriteFinish(tmpFileName); // 重命名append file
+                afterBlockingRewriteFinish(tmpFileName, startTime); // 重命名append file
                 needToDelete = false;
             } else {
                 throw new RuntimeException("rewrite failed");
@@ -471,19 +472,19 @@ public class AppendFilePersistence implements Closeable, AppendFileProtocol {
         }
     }
 
-    private void afterBlockingRewriteFinish(String tmpFileName) throws IOException {
-        boolean hasBackGroundTask = backgroundTaskThread != null;
-        if (hasBackGroundTask) {
+    private void afterBlockingRewriteFinish(String tmpFileName, long startTime) throws IOException {
+        Thread taskThread = backgroundTaskThread;
+        if (taskThread != null) {
             close(); // 关闭后台线程
             commands.clear(); // 清理队列
+            while (taskThread.isAlive()) Thread.yield(); // 等待后台线程退出
         }
-        while (backgroundTaskThread != null) Thread.yield(); // 等待后台线程退出
         Files.move(Paths.get(tmpFileName), Paths.get(directory + FILE_NAME),
                 StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         // 重新开始后台appendFile
-        if (hasBackGroundTask)
+        if (taskThread != null)
             startBackGroundAppendFileTask(); // 重启后台appendFile线程
-        logger.info("rewrite finish");
+        logger.info(String.format("rewrite finish time used %d ms", System.currentTimeMillis() - startTime));
     }
 
     public boolean isRewriting() {

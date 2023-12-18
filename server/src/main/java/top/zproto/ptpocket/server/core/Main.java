@@ -196,6 +196,7 @@ public class Main {
     private boolean checkReload(ServerConfiguration configuration) {
         if (configuration.strongPersistenceSecurityRequired && !configuration.useAppendFile) {
             logger.panic("strong persistence security is required but persistence is close");
+            beforeExit();
             return false;
         }
         if (configuration.useAppendFile) {

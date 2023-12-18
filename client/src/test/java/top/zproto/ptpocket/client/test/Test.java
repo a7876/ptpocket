@@ -18,16 +18,24 @@ public class Test {
     public static void main(String[] args) throws IOException, InterruptedException {
         Test test = new Test();
 //        test.warmUp();
+//        test.bigWarnUp();
 //        test.getServerInfo();
+//        test.warmUp();
 //        test.performanceTest();
+//        test.getServerInfo();
+//        test.blockingRewrite();
+//        Thread.sleep(5000);
+//        test.warmUp();
+//        test.getServerInfo();
+        test.getServerInfo();
+        test.performanceTest();
 //        test.hashTest();
 //        test.innerHashTest();
 //        test.sortedSetTest();
 //        test.otherCommand();
-//        test.getServerInfo();
 //        test.persistenceInsert();
 //        test.blockingRewrite();
-        test.persistenceTest();
+//        test.persistenceTest();
         test.stopServer();
     }
 
